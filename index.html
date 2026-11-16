@@ -24,7 +24,7 @@ body.light select,body.light button,body.light input{background:#f0f0f0;color:#1
 button{margin-top:10px;background:#27d96d;color:#06120a;font-weight:bold;border:0;cursor:pointer}
 button:disabled{opacity:.6}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.tabs button{flex:1;min-width:90px;padding:8px;background:#18242e;border:1px solid #344451;border-radius:8px;color:white;cursor:pointer;margin-top:0;font-size:13px}
+.tabs button{flex:1;min-width:80px;padding:8px;background:#18242e;border:1px solid #344451;border-radius:8px;color:white;cursor:pointer;margin-top:0;font-size:12px}
 .tabs button.active{background:#27d96d;color:#06120a;border-color:#27d96d}
 table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
 th,td{padding:6px;text-align:left;border-bottom:1px solid #293945}
@@ -81,24 +81,15 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
       <button data-type="away" onclick="showStandingsType('away',this)">Deplasman</button>
       <button data-type="form" onclick="showStandingsType('form',this)">Form</button>
     </div>
-    <div class="tabs">
+    <div class="tabs" id="leagueTabs">
       <button class="active" onclick="showLeague('super',this)">Süper Lig</button>
       <button onclick="showLeague('premier',this)">Premier</button>
       <button onclick="showLeague('seriea',this)">Serie A</button>
       <button onclick="showLeague('laliga',this)">La Liga</button>
+      <button onclick="showLeague('ucl',this)">Şampiyonlar Ligi</button>
+      <button onclick="showLeague('uel',this)">UEFA Avrupa Ligi</button>
     </div>
     <div id="standings">Yükleniyor...</div>
-  </section>
-
-  <section class="panel">
-    <h2>⚽ Gol Krallığı</h2>
-    <div class="tabs">
-      <button class="active" onclick="loadScorers('super',this)">Süper Lig</button>
-      <button onclick="loadScorers('premier',this)">Premier</button>
-      <button onclick="loadScorers('seriea',this)">Serie A</button>
-      <button onclick="loadScorers('laliga',this)">La Liga</button>
-    </div>
-    <div id="scorers">Yükleniyor...</div>
   </section>
 
   <section class="panel">
@@ -108,14 +99,10 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
       <button onclick="loadUpcoming('premier',this)">Premier</button>
       <button onclick="loadUpcoming('seriea',this)">Serie A</button>
       <button onclick="loadUpcoming('laliga',this)">La Liga</button>
+      <button onclick="loadUpcoming('ucl',this)">Şampiyonlar Ligi</button>
+      <button onclick="loadUpcoming('uel',this)">UEFA Avrupa Ligi</button>
     </div>
     <div id="upcoming">Yükleniyor...</div>
-  </section>
-
-  <section class="panel">
-    <h2>👥 Takım Kadrosu</h2>
-    <select id="squadTeam" onchange="loadSquad()"></select>
-    <div id="squad" style="margin-top:10px">Takım seç</div>
   </section>
 </main>
 <footer>© 2026 ISO ANALİZ</footer>
@@ -127,7 +114,9 @@ const LEAGUES = {
   super: "cmr77dw0q00eprx06rqew3m48",
   premier: "cmr77dvkr005nrx06lp7rvp49",
   seriea: "cmr77dvpd006yrx06zig7907g",
-  laliga: "cmr77dvnt006nrx063v3w622e"
+  laliga: "cmr77dvnt006nrx063v3w622e",
+  ucl: "cmr77dw0r00eqrx06s4y8q8k9",   // Şampiyonlar Ligi (GOAL API)
+  uel: "cmr77dw0s00errx06t5z9r0l0"    // UEFA Avrupa Ligi (GOAL API)
 };
 let currentLeague = "super";
 let currentStandingsType = "total";
@@ -161,10 +150,10 @@ function toggleFav() {
 }
 
 async function loadAllTeams() {
-  const selects = [document.getElementById("home"), document.getElementById("away"), document.getElementById("squadTeam")];
+  const selects = [document.getElementById("home"), document.getElementById("away")];
   selects.forEach(s => s.innerHTML = "<option>Yükleniyor...</option>");
   try {
-    const results = await Promise.all(Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`)));
+    const results = await Promise.all(Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`).catch(() => [])));
     const seen = new Set();
     allTeams = [];
     results.flat().forEach(team => {
@@ -313,7 +302,7 @@ async function loadLive(){
 }
 
 function showLeague(key,btn){
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll("#leagueTabs button").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   currentLeague=key;
   loadStandings();
@@ -338,36 +327,18 @@ async function loadStandings(){
   }catch(e){document.getElementById("standings").innerHTML="Puan durumu alınamadı.";}
 }
 
-async function loadScorers(key,btn){
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("scorers").innerHTML="Yükleniyor...";
-  try{
-    const data=await api(`/leagues/${LEAGUES[key]}/top-scorers?limit=15`);
-    if(!data?.length){document.getElementById("scorers").innerHTML="Veri yok.";return;}
-    let html=`<table><tr><th>#</th><th>Oyuncu</th><th>Takım</th><th>Gol</th></tr>`;
-    data.forEach((p,i)=>{
-      const name = p.player?.name || p.name || p.playerName || "-";
-      const team = p.team?.name || p.teamName || "-";
-      const goals = p.goals || p.goalsScored || p.totalGoals || 0;
-      html+=`<tr><td>${i+1}</td><td>${name}</td><td>${team}</td><td><b>${goals}</b></td></tr>`;
-    });
-    document.getElementById("scorers").innerHTML=html+"</table>";
-  }catch(e){document.getElementById("scorers").innerHTML="Gol krallığı alınamadı.";}
-}
-
 async function loadUpcoming(key,btn){
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   document.getElementById("upcoming").innerHTML="Yükleniyor...";
   try{
-    const data=await api(`/leagues/${LEAGUES[key]}/fixtures?status=SCHEDULED&limit=30`);
+    const data=await api(`/leagues/${LEAGUES[key]}/fixtures?status=SCHEDULED&limit=40`);
     if(!data?.length){document.getElementById("upcoming").innerHTML="Yaklaşan maç yok.";return;}
     const now = new Date();
     const sorted = data
       .filter(m => m.kickoffUtc && new Date(m.kickoffUtc) > now)
       .sort((a,b) => new Date(a.kickoffUtc) - new Date(b.kickoffUtc))
-      .slice(0,10);
+      .slice(0,12);
     if(!sorted.length){document.getElementById("upcoming").innerHTML="Yakın tarihli maç yok.";return;}
     document.getElementById("upcoming").innerHTML=sorted.map(m=>{
       const date=new Date(m.kickoffUtc).toLocaleString("tr-TR");
@@ -376,21 +347,9 @@ async function loadUpcoming(key,btn){
   }catch(e){document.getElementById("upcoming").innerHTML="Yaklaşan maçlar alınamadı.";}
 }
 
-async function loadSquad(){
-  const id=document.getElementById("squadTeam").value;
-  if(!id) return;
-  document.getElementById("squad").innerHTML="Yükleniyor...";
-  try{
-    const data=await api(`/teams/${id}/players`);
-    if(!data?.length){document.getElementById("squad").innerHTML="Kadro bulunamadı.";return;}
-    document.getElementById("squad").innerHTML=data.map(p=>`<div class="match">${p.name||p.player?.name} <small>(${p.position||p.type||""})</small></div>`).join("");
-  }catch(e){document.getElementById("squad").innerHTML="Kadro alınamadı.";}
-}
-
 loadAllTeams();
 loadLive();
 loadStandings();
-loadScorers("super", document.querySelector("#scorers")?.previousElementSibling?.querySelector("button") || document.createElement("button"));
 loadUpcoming("super", document.querySelector("#upcoming")?.previousElementSibling?.querySelector("button") || document.createElement("button"));
 setInterval(loadLive, 60000);
 </script>

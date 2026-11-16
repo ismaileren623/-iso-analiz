@@ -43,6 +43,7 @@ body.light .match{background:#f5f5f5}
 .tip strong{color:#35ee7b}
 .fav{cursor:pointer;color:#aaa;font-size:18px}
 .fav.active{color:#ffd700}
+.alert{background:#2a1f0a;border:1px solid #f0c040;padding:12px;border-radius:10px;margin-bottom:12px;text-align:center}
 footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
 </style>
 </head>
@@ -52,6 +53,7 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
   <button class="theme-btn" onclick="toggleTheme()">🌙</button>
 </header>
 <main>
+  <div id="favAlert"></div>
   <section class="hero"><h1>Futbolda <span>Verinin Gücü</span></h1></section>
 
   <section class="panel">
@@ -116,7 +118,7 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
     <div id="squad" style="margin-top:10px">Takım seç</div>
   </section>
 </main>
-<footer>© 2026 ISO ANALİZ • Veriler GOAL API</footer>
+<footer>© 2026 ISO ANALİZ</footer>
 
 <script>
 const API_KEY = "gapk_8b131482bc312ca482baef12447de5f5e6a9a2c9db8d1f75ca4f8d8458e85494";
@@ -139,9 +141,14 @@ async function api(path) {
 
 function toggleTheme() {
   document.body.classList.toggle("light");
-  localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+  const isLight = document.body.classList.contains("light");
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  document.querySelector(".theme-btn").textContent = isLight ? "☀️" : "🌙";
 }
-if (localStorage.getItem("theme") === "light") document.body.classList.add("light");
+if (localStorage.getItem("theme") === "light") {
+  document.body.classList.add("light");
+  document.querySelector(".theme-btn").textContent = "☀️";
+}
 
 function toggleFav() {
   const star = document.getElementById("favStar");
@@ -150,6 +157,7 @@ function toggleFav() {
   star.classList.toggle("active");
   star.textContent = star.classList.contains("active") ? "★" : "☆";
   localStorage.setItem("favTeam", star.classList.contains("active") ? home : "");
+  checkFavUpcoming();
 }
 
 async function loadAllTeams() {
@@ -178,6 +186,7 @@ async function loadAllTeams() {
       document.getElementById("favStar").textContent = "★";
     }
     document.getElementById("report").textContent = "Takımlar yüklendi.";
+    checkFavUpcoming();
   } catch(e) {
     document.getElementById("report").innerHTML = "<span style='color:#ff6b6b'>Takımlar yüklenemedi.</span>";
   }
@@ -187,42 +196,56 @@ function formToPoints(form) { return form ? form.split("").reduce((p,c)=>p+(c===
 function formHTML(form) { return form ? form.split("").map(c=>`<span class="form-${c.toLowerCase()}">${c}</span>`).join(" ") : "-"; }
 
 function analyzeLastMatches(results, teamName) {
-  if (!results?.length) return {wins:0,draws:0,losses:0,goalsFor:0,goalsAgainst:0,over25:0,undefeated:0,played:0};
-  let w=0,d=0,l=0,gf=0,ga=0,o=0,u=0;
-  results.slice(0,5).forEach(m=>{
+  if (!results?.length) return {wins:0,draws:0,losses:0,goalsFor:0,goalsAgainst:0,over25:0,undefeated:0,played:0,homeForm:"",awayForm:""};
+  let w=0,d=0,l=0,gf=0,ga=0,o=0,u=0,hf="",af="";
+  results.slice(0,10).forEach(m=>{
     const hs=Number(m.homeTeamScore??m.homeScore??0), as=Number(m.awayTeamScore??m.awayScore??0);
     const isHome=(m.homeTeamName||m.homeTeam?.name||"").toLowerCase().includes(teamName.toLowerCase().split(" ")[0]);
     const sc=isHome?hs:as, con=isHome?as:hs;
     gf+=sc; ga+=con; if(hs+as>2.5)o++;
+    const res = sc>con?"W":sc===con?"D":"L";
+    if(isHome) hf+=res; else af+=res;
     if(sc>con)w++; else if(sc===con){d++;u++;} else l++;
     if(sc>=con)u++;
   });
-  return {wins:w,draws:d,losses:l,goalsFor:gf,goalsAgainst:ga,over25:o,undefeated:u,played:Math.min(5,results.length)};
+  return {wins:w,draws:d,losses:l,goalsFor:gf,goalsAgainst:ga,over25:o,undefeated:u,played:Math.min(10,results.length),homeForm:hf.slice(-5),awayForm:af.slice(-5)};
 }
 
 function generateTips(homeName,awayName,homeStats,awayStats,h,homeResults,awayResults){
   const tips=[], hL=analyzeLastMatches(homeResults,homeName), aL=analyzeLastMatches(awayResults,awayName);
-  if(hL.played>=3&&hL.wins>=3) tips.push(`<strong>${homeName}</strong>, son ${hL.played} maçın ${hL.wins} tanesini kazandı.`);
-  if(aL.played>=3&&aL.wins>=3) tips.push(`<strong>${awayName}</strong>, son ${aL.played} maçın ${aL.wins} tanesini kazandı.`);
-  if(hL.played>=4&&hL.undefeated>=4) tips.push(`<strong>${homeName}</strong> son ${hL.played} maçın ${hL.undefeated} tanesini kaybetmedi.`);
-  if(aL.played>=4&&aL.undefeated>=4) tips.push(`<strong>${awayName}</strong> son ${aL.played} maçın ${aL.undefeated} tanesini kaybetmedi.`);
-  if(hL.over25>=3) tips.push(`<strong>${homeName}</strong> son maçların ${hL.over25} tanesinde 2.5 üst oldu.`);
-  if(aL.over25>=3) tips.push(`<strong>${awayName}</strong> son maçların ${aL.over25} tanesinde 2.5 üst oldu.`);
+  if(hL.played>=5&&hL.wins>=5) tips.push(`<strong>${homeName}</strong>, son ${hL.played} maçın ${hL.wins} tanesini kazandı.`);
+  if(aL.played>=5&&aL.wins>=5) tips.push(`<strong>${awayName}</strong>, son ${aL.played} maçın ${aL.wins} tanesini kazandı.`);
+  if(hL.played>=6&&hL.undefeated>=6) tips.push(`<strong>${homeName}</strong> son ${hL.played} maçın ${hL.undefeated} tanesini kaybetmedi.`);
+  if(aL.played>=6&&aL.undefeated>=6) tips.push(`<strong>${awayName}</strong> son ${aL.played} maçın ${aL.undefeated} tanesini kaybetmedi.`);
+  if(hL.over25>=5) tips.push(`<strong>${homeName}</strong> son maçların ${hL.over25} tanesinde 2.5 üst oldu.`);
+  if(aL.over25>=5) tips.push(`<strong>${awayName}</strong> son maçların ${aL.over25} tanesinde 2.5 üst oldu.`);
   if((h.totalMatches||0)>=4) tips.push(`H2H: ${h.totalMatches} maçta ${homeName} ${h.team1Wins||0}, ${awayName} ${h.team2Wins||0} galibiyet.`);
   return tips.slice(0,6).map(t=>`<div class="tip">${t}</div>`).join("");
 }
 
 function calcAdvancedProb(homeStats,awayStats,h2h,homeResults,awayResults,homeName,awayName){
   let h=0,a=0;
-  h+=formToPoints(homeStats.form)*2; a+=formToPoints(awayStats.form)*2;
+  h+=formToPoints(homeStats.form)*1.8; a+=formToPoints(awayStats.form)*1.8;
   const hL=analyzeLastMatches(homeResults,homeName), aL=analyzeLastMatches(awayResults,awayName);
-  h+=hL.wins*1.5; a+=aL.wins*1.5;
-  h+=(parseFloat(homeStats.goalsScoredPerGame)||1.2)*1.5;
-  a+=(parseFloat(awayStats.goalsScoredPerGame)||1.2)*1.5;
-  if((h2h.totalMatches||0)>=3){ h+=(h2h.team1Wins||0)*1.2; a+=(h2h.team2Wins||0)*1.2; }
-  h+=1.5;
+  h+=hL.wins*1.2; a+=aL.wins*1.2;
+  h+=(parseFloat(homeStats.goalsScoredPerGame)||1.2)*1.4;
+  a+=(parseFloat(awayStats.goalsScoredPerGame)||1.2)*1.4;
+  if((h2h.totalMatches||0)>=3){ h+=(h2h.team1Wins||0)*1.1; a+=(h2h.team2Wins||0)*1.1; }
+  h+=1.6;
   const tot=h+a||1; let hp=Math.round((h/tot)*100); hp=Math.max(18,Math.min(82,hp));
   return {home:hp,away:100-hp};
+}
+
+function predictScore(homeStats, awayStats, homeResults, awayResults, homeName, awayName) {
+  const hAvg = parseFloat(homeStats.goalsScoredPerGame) || 1.3;
+  const aAvg = parseFloat(awayStats.goalsScoredPerGame) || 1.1;
+  const hConc = parseFloat(homeStats.goalsConcededPerGame) || 1.0;
+  const aConc = parseFloat(awayStats.goalsConcededPerGame) || 1.1;
+  let hGoals = Math.round((hAvg + aConc) / 2);
+  let aGoals = Math.round((aAvg + hConc) / 2);
+  hGoals = Math.max(0, Math.min(4, hGoals));
+  aGoals = Math.max(0, Math.min(4, aGoals));
+  return `${hGoals}-${aGoals}`;
 }
 
 async function analyze(){
@@ -239,42 +262,53 @@ async function analyze(){
       api(`/h2h/${homeId}/${awayId}`).catch(()=>({})),
       api(`/teams/${homeId}/statistics`).catch(()=>({})),
       api(`/teams/${awayId}/statistics`).catch(()=>({})),
-      api(`/teams/${homeId}/results?limit=5`).catch(()=>[]),
-      api(`/teams/${awayId}/results?limit=5`).catch(()=>[])
+      api(`/teams/${homeId}/results?limit=10`).catch(()=>[]),
+      api(`/teams/${awayId}/results?limit=10`).catch(()=>[])
     ]);
     const h=h2h.headToHead||h2h||{};
     const probs=calcAdvancedProb(hs,as,h,hr,ar,homeName,awayName);
     const tips=generateTips(homeName,awayName,hs,as,h,hr,ar);
-    const render5=r=>!r?.length?"<p>Son 5 maç yok.</p>":r.slice(0,5).map(m=>`<div class="match">${m.homeTeamName||m.homeTeam?.name} ${m.homeTeamScore??m.homeScore} - ${m.awayTeamScore??m.awayScore} ${m.awayTeamName||m.awayTeam?.name}</div>`).join("");
+    const pred=predictScore(hs,as,hr,ar,homeName,awayName);
+    const hL=analyzeLastMatches(hr,homeName), aL=analyzeLastMatches(ar,awayName);
+    const render10=r=>!r?.length?"<p>Son maç yok.</p>":r.slice(0,10).map(m=>`<div class="match">${m.homeTeamName||m.homeTeam?.name} ${m.homeTeamScore??m.homeScore} - ${m.awayTeamScore??m.awayScore} ${m.awayTeamName||m.awayTeam?.name}</div>`).join("");
     report.innerHTML=`
       <div class="prob">${homeName} %${probs.home} | ${awayName} %${probs.away}</div>
       <div class="prob-bar"><div class="prob-fill" style="width:${probs.home}%"></div></div>
+      <p style="text-align:center;font-size:18px;margin:8px 0"><b>Tahmini Skor:</b> ${pred}</p>
       <h4 style="margin:12px 0 6px;color:#35ee7b">💡 Bahis İpuçları</h4>
       ${tips||"<p>Yeterli veri yok.</p>"}
       <hr style="border-color:#293945;margin:12px 0">
       <p><b>H2H:</b> ${h.totalMatches||0} maç | ${homeName}: ${h.team1Wins||0} | ${awayName}: ${h.team2Wins||0} | Beraberlik: ${h.draws||0}</p>
-      <p><b>${homeName} Form:</b> ${formHTML(hs.form)}</p><p><b>Son 5:</b></p>${render5(hr)}
-      <p style="margin-top:10px"><b>${awayName} Form:</b> ${formHTML(as.form)}</p><p><b>Son 5:</b></p>${render5(ar)}
+      <p><b>${homeName} Form:</b> ${formHTML(hs.form)} | Ev: ${formHTML(hL.homeForm)} | Deplasman: ${formHTML(hL.awayForm)}</p>
+      <p><b>Son 10:</b></p>${render10(hr)}
+      <p style="margin-top:10px"><b>${awayName} Form:</b> ${formHTML(as.form)} | Ev: ${formHTML(aL.homeForm)} | Deplasman: ${formHTML(aL.awayForm)}</p>
+      <p><b>Son 10:</b></p>${render10(ar)}
     `;
   }catch(e){report.innerHTML=`<p style="color:#ff6b6b">${e.message}</p>`;}
   finally{btn.disabled=false;}
+}
+
+async function checkFavUpcoming() {
+  const fav = localStorage.getItem("favTeam");
+  if (!fav) { document.getElementById("favAlert").innerHTML = ""; return; }
+  const team = allTeams.find(t => t.name === fav);
+  if (!team) return;
+  try {
+    const upcoming = await api(`/teams/${team.id}/upcoming?limit=3`);
+    if (upcoming?.length) {
+      const next = upcoming[0];
+      const date = next.kickoffUtc ? new Date(next.kickoffUtc).toLocaleString("tr-TR") : "";
+      document.getElementById("favAlert").innerHTML = `<div class="alert">⭐ Favori takımın <b>${fav}</b> yaklaşan maçı: ${next.homeTeamName||next.homeTeam?.name} vs ${next.awayTeamName||next.awayTeam?.name}<br><small>${date}</small></div>`;
+    }
+  } catch(e) {}
 }
 
 async function loadLive(){
   try{
     const data=await api("/fixtures/live");
     if(!data?.length){document.getElementById("live").innerHTML="Şu an canlı maç yok.";return;}
-    document.getElementById("live").innerHTML=data.slice(0,12).map(m=>`<div class="match" onclick="loadMatchDetail('${m.id}')" style="cursor:pointer"><span class="live">${m.matchElapsed||m.matchMinute||"LIVE"}'</span> ${m.homeTeamName||m.homeTeam?.name} <b>${m.homeTeamScore||m.homeScore} - ${m.awayTeamScore||m.awayScore}</b> ${m.awayTeamName||m.awayTeam?.name}<br><small>${m.leagueName||m.league?.name||""}</small></div>`).join("");
+    document.getElementById("live").innerHTML=data.slice(0,12).map(m=>`<div class="match"><span class="live">${m.matchElapsed||m.matchMinute||"LIVE"}'</span> ${m.homeTeamName||m.homeTeam?.name} <b>${m.homeTeamScore||m.homeScore} - ${m.awayTeamScore||m.awayScore}</b> ${m.awayTeamName||m.awayTeam?.name}<br><small>${m.leagueName||m.league?.name||""}</small></div>`).join("");
   }catch(e){document.getElementById("live").innerHTML="Canlı maçlar alınamadı.";}
-}
-
-async function loadMatchDetail(id){
-  try{
-    const [events,lineups]=await Promise.all([api(`/fixtures/${id}/events`).catch(()=>[]), api(`/fixtures/${id}/lineups`).catch(()=>({}))]);
-    let html="<h4>Maç Detayı</h4>";
-    if(events?.length) html+="<p><b>Olaylar:</b></p>"+events.slice(0,8).map(e=>`<div class="match">${e.minute||""}' ${e.type||""} ${e.playerName||e.player||""}</div>`).join("");
-    document.getElementById("live").insertAdjacentHTML("afterend", `<div class="panel" id="matchDetail">${html}<button onclick="this.parentElement.remove()">Kapat</button></div>`);
-  }catch(e){}
 }
 
 function showLeague(key,btn){
@@ -343,8 +377,8 @@ async function loadSquad(){
 loadAllTeams();
 loadLive();
 loadStandings();
-loadScorers("super", document.querySelector("#scorers").previousElementSibling.querySelector("button"));
-loadUpcoming("super", document.querySelector("#upcoming").previousElementSibling.querySelector("button"));
+loadScorers("super", document.querySelector("#scorers")?.previousElementSibling?.querySelector("button") || document.createElement("button"));
+loadUpcoming("super", document.querySelector("#upcoming")?.previousElementSibling?.querySelector("button") || document.createElement("button"));
 setInterval(loadLive, 60000);
 </script>
 </body>

@@ -34,11 +34,8 @@ footer{text-align:center;color:#8996a2;padding:20px}
 <body>
 <header><div class="logo">ISO ANALİZ</div></header>
 <main>
-  <section class="hero">
-    <h1>Futbolda <span>Verinin Gücü</span></h1>
-  </section>
+  <section class="hero"><h1>Futbolda <span>Verinin Gücü</span></h1></section>
 
-  <!-- ANALİZ -->
   <section class="panel">
     <h2>⚽ Takım Analizi</h2>
     <label>Ev sahibi</label>
@@ -48,16 +45,14 @@ footer{text-align:center;color:#8996a2;padding:20px}
     <button id="analyzeBtn" onclick="analyze()">ANALİZ ET</button>
     <div class="stat">Ev sahibi<strong id="homeName">-</strong></div>
     <div class="stat">Deplasman<strong id="awayName">-</strong></div>
-    <div id="report" style="margin-top:15px;line-height:1.7">Henüz analiz yapılmadı.</div>
+    <div id="report" style="margin-top:15px;line-height:1.7">Takımlar yükleniyor...</div>
   </section>
 
-  <!-- CANLI -->
   <section class="panel">
     <h2>🔴 Canlı Maçlar</h2>
     <div id="live">Yükleniyor...</div>
   </section>
 
-  <!-- PUAN DURUMU -->
   <section class="panel">
     <h2>🏆 Puan Durumları</h2>
     <div class="tabs">
@@ -82,72 +77,74 @@ const LEAGUES = {
   laliga: "cmr77dvnt006nrx063v3w622e"
 };
 
-const TEAMS = [
-  "Galatasaray","Fenerbahçe","Beşiktaş","Trabzonspor",
-  "Real Madrid","Barcelona","Atletico Madrid",
-  "Manchester City","Arsenal","Liverpool","Chelsea",
-  "Inter","Milan","Juventus","Napoli","Bayern Munich"
-];
-
-let teamIds = {};
+let allTeams = []; // {name, id}
 
 async function api(path) {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` }
   });
-  if (!res.ok) throw new Error("API: " + res.status);
+  if (!res.ok) throw new Error(res.status);
   return (await res.json()).data;
 }
 
-async function findTeamId(name) {
-  if (teamIds[name]) return teamIds[name];
-  try {
-    const data = await api(`/teams?search=${encodeURIComponent(name)}&limit=5`);
-    const match = data.find(t => t.name.toLowerCase().includes(name.toLowerCase().split(" ")[0]));
-    if (match) teamIds[name] = match.id;
-  } catch(e) {}
-  return teamIds[name];
-}
+async function loadAllTeams() {
+  const selects = [document.getElementById("home"), document.getElementById("away")];
+  selects.forEach(s => s.innerHTML = "<option>Yükleniyor...</option>");
 
-function initTeams() {
-  const h = document.getElementById("home");
-  const a = document.getElementById("away");
-  TEAMS.forEach(t => {
-    h.add(new Option(t, t));
-    a.add(new Option(t, t));
-  });
-  a.value = "Fenerbahçe";
+  try {
+    const promises = Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`));
+    const results = await Promise.all(promises);
+
+    const seen = new Set();
+    allTeams = [];
+
+    results.flat().forEach(team => {
+      if (team && team.id && team.name && !seen.has(team.id)) {
+        seen.add(team.id);
+        allTeams.push({ name: team.name, id: team.id });
+      }
+    });
+
+    allTeams.sort((a,b) => a.name.localeCompare(b.name));
+
+    selects.forEach(sel => {
+      sel.innerHTML = "";
+      allTeams.forEach(t => sel.add(new Option(t.name, t.id)));
+    });
+
+    document.getElementById("report").textContent = "Takımlar yüklendi. Analiz yapabilirsin.";
+  } catch(e) {
+    document.getElementById("report").innerHTML = "<span style='color:#ff6b6b'>Takımlar yüklenemedi. Sayfayı yenile.</span>";
+  }
 }
 
 async function analyze() {
   const btn = document.getElementById("analyzeBtn");
-  const home = document.getElementById("home").value;
-  const away = document.getElementById("away").value;
+  const homeId = document.getElementById("home").value;
+  const awayId = document.getElementById("away").value;
+  const homeName = document.getElementById("home").selectedOptions[0].text;
+  const awayName = document.getElementById("away").selectedOptions[0].text;
   const report = document.getElementById("report");
 
-  if (home === away) { report.textContent = "Farklı takımlar seç."; return; }
+  if (homeId === awayId) { report.textContent = "Farklı takımlar seç."; return; }
 
   btn.disabled = true;
   report.innerHTML = "<p style='color:#35ee7b'>Analiz yapılıyor...</p>";
-  document.getElementById("homeName").textContent = home;
-  document.getElementById("awayName").textContent = away;
+  document.getElementById("homeName").textContent = homeName;
+  document.getElementById("awayName").textContent = awayName;
 
   try {
-    const homeId = await findTeamId(home);
-    const awayId = await findTeamId(away);
-    if (!homeId || !awayId) throw new Error("Takım bulunamadı");
-
     const h2h = await api(`/h2h/${homeId}/${awayId}`);
-    const h = h2h.headToHead || {};
+    const h = h2h.headToHead || h2h || {};
 
     report.innerHTML = `
-      <h3>${home} - ${away}</h3>
+      <h3>${homeName} - ${awayName}</h3>
       <p><b>H2H:</b> ${h.totalMatches || 0} maç<br>
-         ${home}: ${h.team1Wins || 0} | ${away}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}</p>
+         ${homeName}: ${h.team1Wins || 0} | ${awayName}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}</p>
       <p><b>Ort. gol:</b> ${h.averageGoals || "-"}</p>
     `;
   } catch (err) {
-    report.innerHTML = `<p style="color:#ff6b6b">${err.message}</p>`;
+    report.innerHTML = `<p style="color:#ff6b6b">Hata: ${err.message}</p>`;
   } finally {
     btn.disabled = false;
   }
@@ -197,10 +194,11 @@ function showLeague(key, btn) {
   loadStandings(key);
 }
 
-initTeams();
+loadAllTeams();
 loadLive();
 loadStandings("super");
 setInterval(loadLive, 60000);
 </script>
 </body>
 </html>
+

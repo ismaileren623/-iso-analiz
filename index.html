@@ -87,6 +87,11 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
   </section>
 
   <section class="panel">
+    <h2>📅 Bugünün Maçları</h2>
+    <div id="today">Yükleniyor...</div>
+  </section>
+
+  <section class="panel">
     <h2>🔴 Canlı Maçlar</h2>
     <div id="live">Yükleniyor...</div>
   </section>
@@ -319,6 +324,24 @@ async function checkFavUpcoming() {
   } catch(e) {}
 }
 
+async function loadToday() {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const data = await api(`/fixtures/date/${today}`);
+    if (!data?.length) {
+      document.getElementById("today").innerHTML = "Bugün maç yok.";
+      return;
+    }
+    document.getElementById("today").innerHTML = data.slice(0, 20).map(m => {
+      const time = m.kickoffUtc ? new Date(m.kickoffUtc).toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"}) : "";
+      const status = m.matchStatus === "FINISHED" ? `<b>${m.homeTeamScore||m.homeScore||0} - ${m.awayTeamScore||m.awayScore||0}</b>` : time;
+      return `<div class="match">${m.homeTeamName||m.homeTeam?.name} ${status} ${m.awayTeamName||m.awayTeam?.name}<br><small>${m.leagueName||m.league?.name||""}</small></div>`;
+    }).join("");
+  } catch(e) {
+    document.getElementById("today").innerHTML = "Bugünün maçları alınamadı.";
+  }
+}
+
 async function loadLive(){
   try{
     const data=await api("/fixtures/live");
@@ -360,9 +383,11 @@ async function loadStandings(){
 }
 
 loadAllTeams();
+loadToday();
 loadLive();
 loadStandings();
 setInterval(loadLive, 60000);
+setInterval(loadToday, 120000);
 </script>
 </body>
 </html>

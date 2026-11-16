@@ -9,21 +9,25 @@
 body{margin:0;background:#080d12;color:white;font-family:Arial,sans-serif}
 header{background:#101820;padding:20px;text-align:center;border-bottom:1px solid #293945}
 .logo{font-size:28px;font-weight:bold;color:#35ee7b}
-main{max-width:900px;margin:auto;padding:20px}
-.hero{text-align:center;padding:25px 5px}
-h1{font-size:32px} h1 span{color:#35ee7b}
+main{max-width:950px;margin:auto;padding:20px}
+.hero{text-align:center;padding:20px 5px}
+h1{font-size:30px} h1 span{color:#35ee7b}
 .panel{background:#111a23;border:1px solid #293945;border-radius:15px;padding:20px;margin-bottom:20px}
-label{display:block;margin:15px 0 8px;color:#aab7c3}
-select,button{width:100%;padding:15px;border-radius:9px;border:1px solid #344451;background:#18242e;color:white;font-size:16px}
-button{margin-top:15px;background:#27d96d;color:#06120a;font-weight:bold;border:0;cursor:pointer}
+h2{margin-top:0}
+label{display:block;margin:12px 0 6px;color:#aab7c3}
+select,button{width:100%;padding:14px;border-radius:9px;border:1px solid #344451;background:#18242e;color:white;font-size:16px}
+button{margin-top:12px;background:#27d96d;color:#06120a;font-weight:bold;border:0;cursor:pointer}
 button:disabled{opacity:.6}
 table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
-th,td{padding:8px;text-align:left;border-bottom:1px solid #293945}
+th,td{padding:7px;text-align:left;border-bottom:1px solid #293945}
 th{color:#35ee7b}
 .match{background:#192630;padding:12px;border-radius:8px;margin:8px 0}
-.loading{color:#35ee7b}
-.stat{background:#192630;padding:16px;border-radius:10px;margin-top:12px;text-align:center}
-.stat strong{display:block;color:#35ee7b;font-size:22px;margin-top:10px}
+.live{color:#ff6b6b;font-weight:bold}
+.stat{background:#192630;padding:14px;border-radius:10px;margin-top:10px;text-align:center}
+.stat strong{display:block;color:#35ee7b;font-size:20px;margin-top:6px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+.tabs button{flex:1;min-width:110px;padding:10px;background:#18242e;border:1px solid #344451;border-radius:8px;color:white;cursor:pointer;margin-top:0}
+.tabs button.active{background:#27d96d;color:#06120a;border-color:#27d96d}
 footer{text-align:center;color:#8996a2;padding:20px}
 </style>
 </head>
@@ -32,15 +36,14 @@ footer{text-align:center;color:#8996a2;padding:20px}
 <main>
   <section class="hero">
     <h1>Futbolda <span>Verinin Gücü</span></h1>
-    <p>Süper Lig + Takım Analizi</p>
   </section>
 
-  <!-- Takım Karşılaştırma -->
+  <!-- ANALİZ -->
   <section class="panel">
     <h2>⚽ Takım Analizi</h2>
-    <label>Ev sahibi takım</label>
+    <label>Ev sahibi</label>
     <select id="home"></select>
-    <label>Deplasman takımı</label>
+    <label>Deplasman</label>
     <select id="away"></select>
     <button id="analyzeBtn" onclick="analyze()">ANALİZ ET</button>
     <div class="stat">Ev sahibi<strong id="homeName">-</strong></div>
@@ -48,20 +51,22 @@ footer{text-align:center;color:#8996a2;padding:20px}
     <div id="report" style="margin-top:15px;line-height:1.7">Henüz analiz yapılmadı.</div>
   </section>
 
-  <!-- Süper Lig -->
+  <!-- CANLI -->
   <section class="panel">
-    <h2>🏆 Süper Lig Puan Durumu</h2>
+    <h2>🔴 Canlı Maçlar</h2>
+    <div id="live">Yükleniyor...</div>
+  </section>
+
+  <!-- PUAN DURUMU -->
+  <section class="panel">
+    <h2>🏆 Puan Durumları</h2>
+    <div class="tabs">
+      <button class="active" onclick="showLeague('super', this)">Süper Lig</button>
+      <button onclick="showLeague('premier', this)">Premier League</button>
+      <button onclick="showLeague('seriea', this)">Serie A</button>
+      <button onclick="showLeague('laliga', this)">La Liga</button>
+    </div>
     <div id="standings">Yükleniyor...</div>
-  </section>
-
-  <section class="panel">
-    <h2>📅 Son Sonuçlar</h2>
-    <div id="results">Yükleniyor...</div>
-  </section>
-
-  <section class="panel">
-    <h2>⏳ Yaklaşan Maçlar</h2>
-    <div id="upcoming">Yükleniyor...</div>
   </section>
 </main>
 <footer>© 2026 ISO ANALİZ</footer>
@@ -69,11 +74,19 @@ footer{text-align:center;color:#8996a2;padding:20px}
 <script>
 const API_KEY = "gapk_8b131482bc312ca482baef12447de5f5e6a9a2c9db8d1f75ca4f8d8458e85494";
 const BASE = "https://api.goal-api.com/v1";
-const SUPER_LIG = "cmr77dw0q00eprx06rqew3m48";
+
+const LEAGUES = {
+  super: "cmr77dw0q00eprx06rqew3m48",
+  premier: "cmr77dvkr005nrx06lp7rvp49",
+  seriea: "cmr77dvpd006yrx06zig7907g",
+  laliga: "cmr77dvnt006nrx063v3w622e"
+};
 
 const TEAMS = [
-  "Galatasaray", "Fenerbahçe", "Beşiktaş", "Trabzonspor",
-  "Real Madrid", "Barcelona", "Manchester City", "Arsenal", "Liverpool", "Bayern Munich"
+  "Galatasaray","Fenerbahçe","Beşiktaş","Trabzonspor",
+  "Real Madrid","Barcelona","Atletico Madrid",
+  "Manchester City","Arsenal","Liverpool","Chelsea",
+  "Inter","Milan","Juventus","Napoli","Bayern Munich"
 ];
 
 let teamIds = {};
@@ -82,9 +95,8 @@ async function api(path) {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` }
   });
-  if (!res.ok) throw new Error("API hatası: " + res.status);
-  const json = await res.json();
-  return json.data;
+  if (!res.ok) throw new Error("API: " + res.status);
+  return (await res.json()).data;
 }
 
 async function findTeamId(name) {
@@ -98,13 +110,13 @@ async function findTeamId(name) {
 }
 
 function initTeams() {
-  const homeSel = document.getElementById("home");
-  const awaySel = document.getElementById("away");
+  const h = document.getElementById("home");
+  const a = document.getElementById("away");
   TEAMS.forEach(t => {
-    homeSel.add(new Option(t, t));
-    awaySel.add(new Option(t, t));
+    h.add(new Option(t, t));
+    a.add(new Option(t, t));
   });
-  awaySel.value = "Fenerbahçe";
+  a.value = "Fenerbahçe";
 }
 
 async function analyze() {
@@ -113,52 +125,65 @@ async function analyze() {
   const away = document.getElementById("away").value;
   const report = document.getElementById("report");
 
-  if (home === away) {
-    report.textContent = "Lütfen iki farklı takım seç.";
-    return;
-  }
+  if (home === away) { report.textContent = "Farklı takımlar seç."; return; }
 
   btn.disabled = true;
-  report.innerHTML = "<p class='loading'>Analiz yapılıyor...</p>";
+  report.innerHTML = "<p style='color:#35ee7b'>Analiz yapılıyor...</p>";
   document.getElementById("homeName").textContent = home;
   document.getElementById("awayName").textContent = away;
 
   try {
     const homeId = await findTeamId(home);
     const awayId = await findTeamId(away);
-    if (!homeId || !awayId) throw new Error("Takım ID bulunamadı");
+    if (!homeId || !awayId) throw new Error("Takım bulunamadı");
 
-    const [h2h, homeStats, awayStats] = await Promise.all([
-      api(`/h2h/${homeId}/${awayId}`),
-      api(`/teams/${homeId}/statistics`),
-      api(`/teams/${awayId}/statistics`)
-    ]);
-
+    const h2h = await api(`/h2h/${homeId}/${awayId}`);
     const h = h2h.headToHead || {};
+
     report.innerHTML = `
       <h3>${home} - ${away}</h3>
-      <p><b>H2H:</b> ${h.totalMatches || 0} maç | 
-         ${home}: ${h.team1Wins || 0} | 
-         ${away}: ${h.team2Wins || 0} | 
-         Beraberlik: ${h.draws || 0}</p>
+      <p><b>H2H:</b> ${h.totalMatches || 0} maç<br>
+         ${home}: ${h.team1Wins || 0} | ${away}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}</p>
       <p><b>Ort. gol:</b> ${h.averageGoals || "-"}</p>
-      <p><b>${home} Form:</b> ${homeStats.form || "-"}</p>
-      <p><b>${away} Form:</b> ${awayStats.form || "-"}</p>
     `;
   } catch (err) {
-    report.innerHTML = `<p style="color:#ff6b6b">Hata: ${err.message}</p>`;
+    report.innerHTML = `<p style="color:#ff6b6b">${err.message}</p>`;
   } finally {
     btn.disabled = false;
   }
 }
 
-async function loadStandings() {
+async function loadLive() {
   try {
-    const data = await api(`/standings/${SUPER_LIG}`);
+    const data = await api("/fixtures/live");
+    if (!data?.length) {
+      document.getElementById("live").innerHTML = "Şu an canlı maç yok.";
+      return;
+    }
+    let html = "";
+    data.slice(0, 10).forEach(m => {
+      html += `<div class="match">
+        <span class="live">${m.matchElapsed || m.matchMinute || "LIVE"}'</span>
+        ${m.homeTeamName || m.homeTeam?.name}
+        <b>${m.homeTeamScore || m.homeScore} - ${m.awayTeamScore || m.awayScore}</b>
+        ${m.awayTeamName || m.awayTeam?.name}
+        <br><small>${m.leagueName || m.league?.name || ""}</small>
+      </div>`;
+    });
+    document.getElementById("live").innerHTML = html;
+  } catch(e) {
+    document.getElementById("live").innerHTML = "Canlı maçlar alınamadı.";
+  }
+}
+
+async function loadStandings(key) {
+  document.getElementById("standings").innerHTML = "Yükleniyor...";
+  try {
+    const data = await api(`/standings/${LEAGUES[key]}`);
     let html = `<table><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr>`;
     data.forEach(row => {
-      const gd = (row.overallLeagueGF || 0) - (row.overallLeagueGA || 0);
-      html += `<tr><td>${row.overallLeaguePosition}</td><td>${row.team?.name||'-'}</td><td>${row.overallLeaguePlayed}</td><td>${row.overallLeagueW}</td><td>${row.overallLeagueD}</td><td>${row.overallLeagueL}</td><td>${gd}</td><td><b>${row.overallLeaguePTS}</b></td></tr>`;
+      const gd = (row.overallLeagueGF||0) - (row.overallLeagueGA||0);
+      html += `<tr><td>${row.overallLeaguePosition}</td><td>${row.team?.name||"-"}</td><td>${row.overallLeaguePlayed}</td><td>${row.overallLeagueW}</td><td>${row.overallLeagueD}</td><td>${row.overallLeagueL}</td><td>${gd}</td><td><b>${row.overallLeaguePTS}</b></td></tr>`;
     });
     document.getElementById("standings").innerHTML = html + "</table>";
   } catch(e) {
@@ -166,37 +191,16 @@ async function loadStandings() {
   }
 }
 
-async function loadResults() {
-  try {
-    const data = await api(`/leagues/${SUPER_LIG}/results?limit=8`);
-    let html = "";
-    (data||[]).slice(0,8).forEach(m => {
-      html += `<div class="match">${m.homeTeamName||m.homeTeam?.name} ${m.homeTeamScore||m.homeScore} - ${m.awayTeamScore||m.awayScore} ${m.awayTeamName||m.awayTeam?.name}</div>`;
-    });
-    document.getElementById("results").innerHTML = html || "Sonuç yok";
-  } catch(e) {
-    document.getElementById("results").innerHTML = "Sonuçlar alınamadı.";
-  }
-}
-
-async function loadUpcoming() {
-  try {
-    const data = await api(`/leagues/${SUPER_LIG}/fixtures?status=SCHEDULED&limit=8`);
-    let html = "";
-    (data||[]).slice(0,8).forEach(m => {
-      const date = m.kickoffUtc ? new Date(m.kickoffUtc).toLocaleString("tr-TR") : "";
-      html += `<div class="match">${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}<br><small>${date}</small></div>`;
-    });
-    document.getElementById("upcoming").innerHTML = html || "Yaklaşan maç yok";
-  } catch(e) {
-    document.getElementById("upcoming").innerHTML = "Yaklaşan maçlar alınamadı.";
-  }
+function showLeague(key, btn) {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  loadStandings(key);
 }
 
 initTeams();
-loadStandings();
-loadResults();
-loadUpcoming();
+loadLive();
+loadStandings("super");
+setInterval(loadLive, 60000);
 </script>
 </body>
 </html>

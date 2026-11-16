@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISO ANALİZ</title>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;background:#080d12;color:#fff;
+font-family:Arial,sans-serif
+}
+header{
+background:#101820;padding:20px 6%;
+display:flex;justify-content:space-between;
+align-items:center;border-bottom:1px solid #263642
+}
+.logo{font-size:27px;font-weight:bold;color:#35ee7b}
+.logo span{color:white}
+nav a{color:#ddd;text-decoration:none;margin-left:15px}
+main{max-width:1100px;margin:auto;padding:25px 18px}
+.hero{text-align:center;padding:40px 10px}
+h1{font-size:38px}
+h1 span{color:#35ee7b}
+p{color:#aab7c3;line-height:1.6}
+.panel{
+background:#111a23;border:1px solid #293945;
+border-radius:15px;padding:22px;margin-bottom:20px
+}
+h2{font-size:21px;margin-top:0}
+.match{
+display:grid;grid-template-columns:1fr 1fr 120px;
+gap:12px;align-items:end
+}
+select,button{
+width:100%;padding:14px;border-radius:9px;
+border:1px solid #344451;background:#18242e;
+color:white;font-size:15px
+}
+button{
+background:#27d96d;color:#06120a;
+font-weight:bold;border:0;cursor:pointer
+}
+button:hover{background:#50f18b}
+.stats{
+display:grid;grid-template-columns:repeat(3,1fr);
+gap:12px
+}
+.stat{
+background:#192630;padding:18px;
+border-radius:12px;text-align:center
+}
+.stat strong{
+display:block;color:#35ee7b;
+font-size:24px;margin:12px 0
+}
+.analysis{line-height:1.8;color:#dce5eb}
+footer{text-align:center;padding:25px;color:#8996a2}
+@media(max-width:650px){
+header{flex-direction:column;gap:15px}
+nav a{margin:5px;font-size:13px}
+h1{font-size:29px}
+.match,.stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">ISO <span>ANALİZ</span></div>
+<nav>
+<a href="#analiz">Maç Analizi</a>
+<a href="#istatistik">İstatistik</a>
+</nav>
+</header>
+
+<main>
+
+<section class="hero">
+<h1>Futbolda <span>Verinin Gücü</span></h1>
+<p>Yapay zekâ destekli futbol analiz platformu</p>
+</section>
+
+<section class="panel" id="analiz">
+<h2>⚽ Maç Analizi</h2>
+
+<div class="match">
+<div>
+<p>Ev sahibi takım</p>
+<select id="home">
+<option>Real Madrid</option>
+<option>Barcelona</option>
+<option>Manchester City</option>
+<option>Arsenal</option>
+<option>Liverpool</option>
+<option>Bayern Münih</option>
+<option>Galatasaray</option>
+<option>Fenerbahçe</option>
+<option>Beşiktaş</option>
+<option>Trabzonspor</option>
+</select>
+</div>
+
+<div>
+<p>Deplasman takımı</p>
+<select id="away">
+<option>Barcelona</option>
+<option>Real Madrid</option>
+<option>Arsenal</option>
+<option>Manchester City</option>
+<option>Liverpool</option>
+<option>Bayern Münih</option>
+<option>Fenerbahçe</option>
+<option>Galatasaray</option>
+<option>Beşiktaş</option>
+<option>Trabzonspor</option>
+</select>
+</div>
+
+<button onclick="analyze()">ANALİZ ET</button>
+</div>
+</section>
+
+<section class="panel" id="istatistik">
+<h2>📊 Maç Karşılaştırması</h2>
+<div class="stats">
+<div class="stat">
+Ev sahibi
+<strong id="homeName">Real Madrid</strong>
+</div>
+<div class="stat">
+Karşılaştırma
+<strong>VS</strong>
+</div>
+<div class="stat">
+Deplasman
+<strong id="awayName">Barcelona</strong>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<h2>🤖 ISO Yapay Zekâ Raporu</h2>
+<div class="analysis" id="report">
+Henüz maç analizi yapılmadı.
+Takımları seçerek analizi başlatabilirsin.
+</div>
+</section>
+
+<section class="panel">
+<h2>📈 Analiz Kategorileri</h2>
+<div class="stats">
+<div class="stat">Maç sonucu<strong>1 - X - 2</strong></div>
+<div class="stat">Gol analizi<strong>2.5 Üst / Alt</strong></div>
+<div class="stat">Karşılıklı gol<strong>Var / Yok</strong></div>
+</div>
+</section>
+
+<section class="panel">
+<h2>ISO ANALİZ Hakkında</h2>
+<p>Futbol karşılaşmalarını analiz etmek, takım performanslarını karşılaştırmak ve istatistikleri incelemek için geliştirilen platform.</p>
+</section>
+
+</main>
+
+<footer>© 2026 ISO ANALİZ</footer>
+
+<script>
+function analyze(){
+const home=document.getElementById("home").value;
+const away=document.getElementById("away").value;
+
+if(home===away){
+document.getElementById("report").textContent=
+"Farklı iki takım seçmelisin.";
+return;
+}
+
+document.getElementById("homeName").textContent=home;
+document.getElementById("awayName").textContent=away;
+
+document.getElementById("report").innerHTML=
+"<b>"+home+" - "+away+"</b><br><br>"+
+"Maç karşılaştırması oluşturuldu.<br>"+
+"1-X-2: Gerçek veri bekleniyor.<br>"+
+"2.5 Üst/Alt: Gerçek veri bekleniyor.<br>"+
+"Karşılıklı Gol: Gerçek veri bekleniyor.<br><br>"+
+"Bu ilk sürüm demo arayüzüdür. Gerçek istatistikler ve yapay zekâ bağlantısı henüz eklenmemiştir.";
+}
+</script>
+
+</body>
+</html>
+

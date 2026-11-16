@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ISO ANALİZ</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080d12;color:white;
+ font-family:Arial,sans-serif
+}
+header{
+ background:#101820;padding:20px;
+ text-align:center;border-bottom:1px solid #293945
+}
+.logo{font-size:28px;font-weight:bold;color:#35ee7b}
+main{max-width:850px;margin:auto;padding:20px}
+.hero{text-align:center;padding:25px 5px}
+h1{font-size:32px}
+h1 span{color:#35ee7b}
+.panel{
+ background:#111a23;border:1px solid #293945;
+ border-radius:15px;padding:20px;margin-bottom:20px
+}
+label{display:block;margin:15px 0 8px;color:#aab7c3}
+select,button{
+ width:100%;padding:15px;border-radius:9px;
+ border:1px solid #344451;background:#18242e;
+ color:white;font-size:16px
+}
+button{
+ margin-top:20px;background:#27d96d;
+ color:#06120a;font-weight:bold;border:0
+}
+button:active{background:#50f18b}
+.stat{
+ background:#192630;padding:16px;
+ border-radius:10px;margin-top:12px;text-align:center
+}
+.stat strong{
+ display:block;color:#35ee7b;
+ font-size:22px;margin-top:10px
+}
+#report{line-height:1.8;color:#dce5eb}
+footer{text-align:center;color:#8996a2;padding:20px}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">ISO ANALİZ</div>
+</header>
+
+<main>
+<section class="hero">
+<h1>Futbolda <span>Verinin Gücü</span></h1>
+<p>Futbol takımlarını karşılaştır ve analiz et.</p>
+</section>
+
+<section class="panel">
+<h2>⚽ Maç Analizi</h2>
+
+<label>Ev sahibi takım</label>
+<select id="home">
+<option>Real Madrid</option>
+<option>Barcelona</option>
+<option>Manchester City</option>
+<option>Arsenal</option>
+<option>Liverpool</option>
+<option>Bayern Münih</option>
+<option>Galatasaray</option>
+<option>Fenerbahçe</option>
+<option>Beşiktaş</option>
+<option>Trabzonspor</option>
+</select>
+
+<label>Deplasman takımı</label>
+<select id="away">
+<option>Barcelona</option>
+<option>Real Madrid</option>
+<option>Manchester City</option>
+<option>Arsenal</option>
+<option>Liverpool</option>
+<option>Bayern Münih</option>
+<option>Galatasaray</option>
+<option>Fenerbahçe</option>
+<option>Beşiktaş</option>
+<option>Trabzonspor</option>
+</select>
+
+<button onclick="analyze()">ANALİZ ET</button>
+</section>
+
+<section class="panel">
+<h2>📊 Maç Karşılaştırması</h2>
+<div class="stat">Ev sahibi
+<strong id="homeName">Real Madrid</strong>
+</div>
+<div class="stat">Deplasman
+<strong id="awayName">Barcelona</strong>
+</div>
+</section>
+
+<section class="panel" id="rapor">
+<h2>🤖 ISO Analiz Raporu</h2>
+<div id="report">
+Henüz analiz yapılmadı. Takımları seç ve ANALİZ ET düğmesine bas.
+</div>
+</section>
+
+</main>
+
+<footer>© 2026 ISO ANALİZ</footer>
+
+<script>
+function analyze(){
+
+const home=document.getElementById("home").value;
+const away=document.getElementById("away").value;
+const report=document.getElementById("report");
+
+if(home===away){
+ report.textContent="Lütfen iki farklı takım seç.";
+ return;
+}
+
+document.getElementById("homeName").textContent=home;
+document.getElementById("awayName").textContent=away;
+
+const puan={
+ "Real Madrid":90,
+ "Barcelona":88,
+ "Manchester City":91,
+ "Arsenal":86,
+ "Liverpool":89,
+ "Bayern Münih":90,
+ "Galatasaray":82,
+ "Fenerbahçe":82,
+ "Beşiktaş":78,
+ "Trabzonspor":76
+};
+
+const ev=puan[home];
+const dep=puan[away];
+
+let sonuc="Takımların örnek güç puanları birbirine yakın.";
+if(ev>dep) sonuc=home+" örnek güç puanında önde.";
+if(dep>ev) sonuc=away+" örnek güç puanında önde.";
+if(ev===dep) sonuc="İki takımın örnek güç puanı eşit.";
+
+report.innerHTML=
+"<h3>"+home+" - "+away+"</h3>"+
+"<p>Ev sahibi örnek puanı: <b>"+ev+"</b></p>"+
+"<p>Deplasman örnek puanı: <b>"+dep+"</b></p>"+
+"<p><b>Karşılaştırma:</b> "+sonuc+"</p>"+
+"<p>Bu sonuçlar örnek puanlarla hazırlanmıştır. "+
+"Canlı maç istatistikleri kullanılmamaktadır.</p>";
+
+document.getElementById("rapor").scrollIntoView({
+ behavior:"smooth"
+});
+}
+</script>
+
+</body>
+</html>

@@ -125,33 +125,47 @@ function formHTML(form) {
   return form.split("").map(c => `<span class="form-${c.toLowerCase()}">${c}</span>`).join(" ");
 }
 
+function analyzeLastMatches(results, teamName) {
+  if (!results || !results.length) return { wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, over25: 0, undefeated: 0 };
+  let wins = 0, draws = 0, losses = 0, gf = 0, ga = 0, over25 = 0, undefeated = 0;
+  results.slice(0, 5).forEach(m => {
+    const hs = Number(m.homeTeamScore ?? m.homeScore ?? 0);
+    const as = Number(m.awayTeamScore ?? m.awayScore ?? 0);
+    const total = hs + as;
+    const isHome = (m.homeTeamName || m.homeTeam?.name || "").toLowerCase().includes(teamName.toLowerCase().split(" ")[0]);
+    const scored = isHome ? hs : as;
+    const conceded = isHome ? as : hs;
+    gf += scored;
+    ga += conceded;
+    if (total > 2.5) over25++;
+    if (scored > conceded) wins++;
+    else if (scored === conceded) { draws++; undefeated++; }
+    else losses++;
+    if (scored >= conceded) undefeated++;
+  });
+  return { wins, draws, losses, goalsFor: gf, goalsAgainst: ga, over25, undefeated, played: Math.min(5, results.length) };
+}
+
 function generateTips(homeName, awayName, homeStats, awayStats, h, homeResults, awayResults) {
   const tips = [];
-  const hForm = homeStats.form || "";
-  const aForm = awayStats.form || "";
-  const hWins = (hForm.match(/W/g) || []).length;
-  const aWins = (aForm.match(/W/g) || []).length;
-  const hUndefeated = hForm.length - (hForm.match(/L/g) || []).length;
-  const aUndefeated = aForm.length - (aForm.match(/L/g) || []).length;
+  const hLast = analyzeLastMatches(homeResults, homeName);
+  const aLast = analyzeLastMatches(awayResults, awayName);
 
-  if (hWins >= 3) tips.push(`<strong>${homeName}</strong>, son 5 maçın ${hWins} tanesini kazandı.`);
-  if (aWins >= 3) tips.push(`<strong>${awayName}</strong>, son 5 maçın ${aWins} tanesini kazandı.`);
-  if (hUndefeated >= 4) tips.push(`<strong>${homeName}</strong> son 5 maçın ${hUndefeated} tanesini kaybetmedi.`);
-  if (aUndefeated >= 4) tips.push(`<strong>${awayName}</strong> son 5 maçın ${aUndefeated} tanesini kaybetmedi.`);
+  if (hLast.played >= 3 && hLast.wins >= 3) tips.push(`<strong>${homeName}</strong>, son ${hLast.played} maçın ${hLast.wins} tanesini kazandı.`);
+  if (aLast.played >= 3 && aLast.wins >= 3) tips.push(`<strong>${awayName}</strong>, son ${aLast.played} maçın ${aLast.wins} tanesini kazandı.`);
 
-  const hGoals = parseFloat(homeStats.goalsScoredPerGame) || 0;
-  const aGoals = parseFloat(awayStats.goalsScoredPerGame) || 0;
-  if (hGoals + aGoals >= 2.8) tips.push(`İki takımın gol ortalaması yüksek. <strong>Üst 2.5</strong> ihtimali güçlü.`);
-  if (hGoals + aGoals <= 2.2) tips.push(`Gol ortalamaları düşük. <strong>Alt 2.5</strong> düşünülebilir.`);
+  if (hLast.played >= 4 && hLast.undefeated >= 4) tips.push(`<strong>${homeName}</strong> son ${hLast.played} maçın ${hLast.undefeated} tanesini kaybetmedi.`);
+  if (aLast.played >= 4 && aLast.undefeated >= 4) tips.push(`<strong>${awayName}</strong> son ${aLast.played} maçın ${aLast.undefeated} tanesini kaybetmedi.`);
 
-  if ((h.totalMatches || 0) >= 5) {
-    tips.push(`H2H’de toplam ${h.totalMatches} maç oynanmış. ${homeName} ${h.team1Wins || 0}, ${awayName} ${h.team2Wins || 0} galibiyet aldı.`);
-  }
+  if (hLast.over25 >= 3) tips.push(`<strong>${homeName}</strong> son ${hLast.played} maçın ${hLast.over25} tanesinde 2.5 üst gol oldu.`);
+  if (aLast.over25 >= 3) tips.push(`<strong>${awayName}</strong> son ${aLast.played} maçın ${aLast.over25} tanesinde 2.5 üst gol oldu.`);
 
-  if (formToPoints(hForm) > formToPoints(aForm) + 3) {
-    tips.push(`<strong>${homeName}</strong> form olarak daha iyi durumda.`);
-  } else if (formToPoints(aForm) > formToPoints(hForm) + 3) {
-    tips.push(`<strong>${awayName}</strong> form olarak daha iyi durumda.`);
+  const avgGoals = ((hLast.goalsFor + aLast.goalsFor) / Math.max(1, hLast.played + aLast.played)) * 2;
+  if (avgGoals >= 2.8) tips.push(`Son maçlara bakıldığında gol potansiyeli yüksek. <strong>Üst 2.5</strong> düşünülebilir.`);
+  if (avgGoals <= 2.0) tips.push(`Son maçlarda gol az. <strong>Alt 2.5</strong> ihtimali var.`);
+
+  if ((h.totalMatches || 0) >= 4) {
+    tips.push(`H2H: ${h.totalMatches} maçta ${homeName} ${h.team1Wins || 0}, ${awayName} ${h.team2Wins || 0} galibiyet aldı.`);
   }
 
   return tips.slice(0, 6).map(t => `<div class="tip">${t}</div>`).join("");
@@ -161,25 +175,28 @@ function calcAdvancedProb(homeStats, awayStats, h2h, homeResults, awayResults, h
   let home = 0, away = 0;
   const hForm = formToPoints(homeStats.form);
   const aForm = formToPoints(awayStats.form);
-  home += hForm * 2.2;
-  away += aForm * 2.2;
+  home += hForm * 2.0;
+  away += aForm * 2.0;
+
+  const hLast = analyzeLastMatches(homeResults, homeName);
+  const aLast = analyzeLastMatches(awayResults, awayName);
+  home += hLast.wins * 1.5;
+  away += aLast.wins * 1.5;
 
   const hGoals = parseFloat(homeStats.goalsScoredPerGame) || 1.2;
   const aGoals = parseFloat(awayStats.goalsScoredPerGame) || 1.2;
-  const hConc = parseFloat(homeStats.goalsConcededPerGame) || 1.1;
-  const aConc = parseFloat(awayStats.goalsConcededPerGame) || 1.1;
-  home += (hGoals * 1.8) + ((2.5 - aConc) * 1.2);
-  away += (aGoals * 1.8) + ((2.5 - hConc) * 1.2);
+  home += hGoals * 1.5;
+  away += aGoals * 1.5;
 
   if ((h2h.totalMatches || 0) >= 3) {
-    home += (h2h.team1Wins || 0) * 1.4;
-    away += (h2h.team2Wins || 0) * 1.4;
+    home += (h2h.team1Wins || 0) * 1.2;
+    away += (h2h.team2Wins || 0) * 1.2;
   }
-  home += 1.8; // ev sahibi avantajı
+  home += 1.5;
 
   const total = home + away || 1;
   let homeProb = Math.round((home / total) * 100);
-  homeProb = Math.max(15, Math.min(85, homeProb));
+  homeProb = Math.max(18, Math.min(82, homeProb));
   return { home: homeProb, away: 100 - homeProb };
 }
 

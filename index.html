@@ -22,6 +22,8 @@ th,td{padding:8px;text-align:left;border-bottom:1px solid #293945}
 th{color:#35ee7b}
 .match{background:#192630;padding:12px;border-radius:8px;margin:8px 0}
 .loading{color:#35ee7b}
+.stat{background:#192630;padding:16px;border-radius:10px;margin-top:12px;text-align:center}
+.stat strong{display:block;color:#35ee7b;font-size:22px;margin-top:10px}
 footer{text-align:center;color:#8996a2;padding:20px}
 </style>
 </head>
@@ -30,9 +32,23 @@ footer{text-align:center;color:#8996a2;padding:20px}
 <main>
   <section class="hero">
     <h1>Futbolda <span>Verinin Gücü</span></h1>
-    <p>Süper Lig Analizi</p>
+    <p>Süper Lig + Takım Analizi</p>
   </section>
 
+  <!-- Takım Karşılaştırma -->
+  <section class="panel">
+    <h2>⚽ Takım Analizi</h2>
+    <label>Ev sahibi takım</label>
+    <select id="home"></select>
+    <label>Deplasman takımı</label>
+    <select id="away"></select>
+    <button id="analyzeBtn" onclick="analyze()">ANALİZ ET</button>
+    <div class="stat">Ev sahibi<strong id="homeName">-</strong></div>
+    <div class="stat">Deplasman<strong id="awayName">-</strong></div>
+    <div id="report" style="margin-top:15px;line-height:1.7">Henüz analiz yapılmadı.</div>
+  </section>
+
+  <!-- Süper Lig -->
   <section class="panel">
     <h2>🏆 Süper Lig Puan Durumu</h2>
     <div id="standings">Yükleniyor...</div>
@@ -55,13 +71,85 @@ const API_KEY = "gapk_8b131482bc312ca482baef12447de5f5e6a9a2c9db8d1f75ca4f8d8458
 const BASE = "https://api.goal-api.com/v1";
 const SUPER_LIG = "cmr77dw0q00eprx06rqew3m48";
 
+const TEAMS = [
+  "Galatasaray", "Fenerbahçe", "Beşiktaş", "Trabzonspor",
+  "Real Madrid", "Barcelona", "Manchester City", "Arsenal", "Liverpool", "Bayern Munich"
+];
+
+let teamIds = {};
+
 async function api(path) {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` }
   });
-  if (!res.ok) throw new Error(res.status);
+  if (!res.ok) throw new Error("API hatası: " + res.status);
   const json = await res.json();
   return json.data;
+}
+
+async function findTeamId(name) {
+  if (teamIds[name]) return teamIds[name];
+  try {
+    const data = await api(`/teams?search=${encodeURIComponent(name)}&limit=5`);
+    const match = data.find(t => t.name.toLowerCase().includes(name.toLowerCase().split(" ")[0]));
+    if (match) teamIds[name] = match.id;
+  } catch(e) {}
+  return teamIds[name];
+}
+
+function initTeams() {
+  const homeSel = document.getElementById("home");
+  const awaySel = document.getElementById("away");
+  TEAMS.forEach(t => {
+    homeSel.add(new Option(t, t));
+    awaySel.add(new Option(t, t));
+  });
+  awaySel.value = "Fenerbahçe";
+}
+
+async function analyze() {
+  const btn = document.getElementById("analyzeBtn");
+  const home = document.getElementById("home").value;
+  const away = document.getElementById("away").value;
+  const report = document.getElementById("report");
+
+  if (home === away) {
+    report.textContent = "Lütfen iki farklı takım seç.";
+    return;
+  }
+
+  btn.disabled = true;
+  report.innerHTML = "<p class='loading'>Analiz yapılıyor...</p>";
+  document.getElementById("homeName").textContent = home;
+  document.getElementById("awayName").textContent = away;
+
+  try {
+    const homeId = await findTeamId(home);
+    const awayId = await findTeamId(away);
+    if (!homeId || !awayId) throw new Error("Takım ID bulunamadı");
+
+    const [h2h, homeStats, awayStats] = await Promise.all([
+      api(`/h2h/${homeId}/${awayId}`),
+      api(`/teams/${homeId}/statistics`),
+      api(`/teams/${awayId}/statistics`)
+    ]);
+
+    const h = h2h.headToHead || {};
+    report.innerHTML = `
+      <h3>${home} - ${away}</h3>
+      <p><b>H2H:</b> ${h.totalMatches || 0} maç | 
+         ${home}: ${h.team1Wins || 0} | 
+         ${away}: ${h.team2Wins || 0} | 
+         Beraberlik: ${h.draws || 0}</p>
+      <p><b>Ort. gol:</b> ${h.averageGoals || "-"}</p>
+      <p><b>${home} Form:</b> ${homeStats.form || "-"}</p>
+      <p><b>${away} Form:</b> ${awayStats.form || "-"}</p>
+    `;
+  } catch (err) {
+    report.innerHTML = `<p style="color:#ff6b6b">Hata: ${err.message}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function loadStandings() {
@@ -70,21 +158,11 @@ async function loadStandings() {
     let html = `<table><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr>`;
     data.forEach(row => {
       const gd = (row.overallLeagueGF || 0) - (row.overallLeagueGA || 0);
-      html += `<tr>
-        <td>${row.overallLeaguePosition}</td>
-        <td>${row.team?.name || '-'}</td>
-        <td>${row.overallLeaguePlayed}</td>
-        <td>${row.overallLeagueW}</td>
-        <td>${row.overallLeagueD}</td>
-        <td>${row.overallLeagueL}</td>
-        <td>${gd}</td>
-        <td><b>${row.overallLeaguePTS}</b></td>
-      </tr>`;
+      html += `<tr><td>${row.overallLeaguePosition}</td><td>${row.team?.name||'-'}</td><td>${row.overallLeaguePlayed}</td><td>${row.overallLeagueW}</td><td>${row.overallLeagueD}</td><td>${row.overallLeagueL}</td><td>${gd}</td><td><b>${row.overallLeaguePTS}</b></td></tr>`;
     });
-    html += `</table>`;
-    document.getElementById("standings").innerHTML = html;
-  } catch (e) {
-    document.getElementById("standings").innerHTML = "Puan durumu alınamadı (401?). Domain kontrol et.";
+    document.getElementById("standings").innerHTML = html + "</table>";
+  } catch(e) {
+    document.getElementById("standings").innerHTML = "Puan durumu alınamadı.";
   }
 }
 
@@ -92,11 +170,11 @@ async function loadResults() {
   try {
     const data = await api(`/leagues/${SUPER_LIG}/results?limit=8`);
     let html = "";
-    (data || []).slice(0, 8).forEach(m => {
-      html += `<div class="match">${m.homeTeamName || m.homeTeam?.name} ${m.homeTeamScore || m.homeScore} - ${m.awayTeamScore || m.awayScore} ${m.awayTeamName || m.awayTeam?.name}</div>`;
+    (data||[]).slice(0,8).forEach(m => {
+      html += `<div class="match">${m.homeTeamName||m.homeTeam?.name} ${m.homeTeamScore||m.homeScore} - ${m.awayTeamScore||m.awayScore} ${m.awayTeamName||m.awayTeam?.name}</div>`;
     });
-    document.getElementById("results").innerHTML = html || "Sonuç bulunamadı";
-  } catch (e) {
+    document.getElementById("results").innerHTML = html || "Sonuç yok";
+  } catch(e) {
     document.getElementById("results").innerHTML = "Sonuçlar alınamadı.";
   }
 }
@@ -105,16 +183,17 @@ async function loadUpcoming() {
   try {
     const data = await api(`/leagues/${SUPER_LIG}/fixtures?status=SCHEDULED&limit=8`);
     let html = "";
-    (data || []).slice(0, 8).forEach(m => {
+    (data||[]).slice(0,8).forEach(m => {
       const date = m.kickoffUtc ? new Date(m.kickoffUtc).toLocaleString("tr-TR") : "";
-      html += `<div class="match">${m.homeTeamName || m.homeTeam?.name} vs ${m.awayTeamName || m.awayTeam?.name}<br><small>${date}</small></div>`;
+      html += `<div class="match">${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}<br><small>${date}</small></div>`;
     });
     document.getElementById("upcoming").innerHTML = html || "Yaklaşan maç yok";
-  } catch (e) {
+  } catch(e) {
     document.getElementById("upcoming").innerHTML = "Yaklaşan maçlar alınamadı.";
   }
 }
 
+initTeams();
 loadStandings();
 loadResults();
 loadUpcoming();

@@ -31,7 +31,11 @@ th{color:#35ee7b}
 footer{text-align:center;color:#8996a2;padding:20px}
 .report-box{background:#192630;padding:15px;border-radius:10px;margin-top:10px;line-height:1.6}
 .form-w{color:#35ee7b} .form-d{color:#f0c040} .form-l{color:#ff6b6b}
-.prob{font-size:18px;font-weight:bold;margin:10px 0}
+.prob{font-size:20px;font-weight:bold;margin:12px 0;text-align:center}
+.prob-bar{height:8px;background:#293945;border-radius:4px;overflow:hidden;margin:8px 0 15px}
+.prob-fill{height:100%;background:#35ee7b}
+.tip{background:#1e2a35;padding:10px 12px;border-radius:8px;margin:6px 0;border-left:3px solid #35ee7b}
+.tip strong{color:#35ee7b}
 </style>
 </head>
 <body>
@@ -91,26 +95,21 @@ async function api(path) {
 async function loadAllTeams() {
   const selects = [document.getElementById("home"), document.getElementById("away")];
   selects.forEach(s => s.innerHTML = "<option>Yükleniyor...</option>");
-
   try {
     const results = await Promise.all(Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`)));
     const seen = new Set();
     const teams = [];
-
     results.flat().forEach(team => {
       if (team?.id && team?.name && !seen.has(team.id)) {
         seen.add(team.id);
         teams.push({ name: team.name, id: team.id });
       }
     });
-
     teams.sort((a,b) => a.name.localeCompare(b.name));
-
     selects.forEach(sel => {
       sel.innerHTML = "";
       teams.forEach(t => sel.add(new Option(t.name, t.id)));
     });
-
     document.getElementById("report").textContent = "Takımlar yüklendi. Analiz yapabilirsin.";
   } catch(e) {
     document.getElementById("report").innerHTML = "<span style='color:#ff6b6b'>Takımlar yüklenemedi.</span>";
@@ -121,10 +120,67 @@ function formToPoints(form) {
   if (!form) return 0;
   return form.split("").reduce((p, c) => p + (c === "W" ? 3 : c === "D" ? 1 : 0), 0);
 }
-
 function formHTML(form) {
   if (!form) return "-";
   return form.split("").map(c => `<span class="form-${c.toLowerCase()}">${c}</span>`).join(" ");
+}
+
+function generateTips(homeName, awayName, homeStats, awayStats, h, homeResults, awayResults) {
+  const tips = [];
+  const hForm = homeStats.form || "";
+  const aForm = awayStats.form || "";
+  const hWins = (hForm.match(/W/g) || []).length;
+  const aWins = (aForm.match(/W/g) || []).length;
+  const hUndefeated = hForm.length - (hForm.match(/L/g) || []).length;
+  const aUndefeated = aForm.length - (aForm.match(/L/g) || []).length;
+
+  if (hWins >= 3) tips.push(`<strong>${homeName}</strong>, son 5 maçın ${hWins} tanesini kazandı.`);
+  if (aWins >= 3) tips.push(`<strong>${awayName}</strong>, son 5 maçın ${aWins} tanesini kazandı.`);
+  if (hUndefeated >= 4) tips.push(`<strong>${homeName}</strong> son 5 maçın ${hUndefeated} tanesini kaybetmedi.`);
+  if (aUndefeated >= 4) tips.push(`<strong>${awayName}</strong> son 5 maçın ${aUndefeated} tanesini kaybetmedi.`);
+
+  const hGoals = parseFloat(homeStats.goalsScoredPerGame) || 0;
+  const aGoals = parseFloat(awayStats.goalsScoredPerGame) || 0;
+  if (hGoals + aGoals >= 2.8) tips.push(`İki takımın gol ortalaması yüksek. <strong>Üst 2.5</strong> ihtimali güçlü.`);
+  if (hGoals + aGoals <= 2.2) tips.push(`Gol ortalamaları düşük. <strong>Alt 2.5</strong> düşünülebilir.`);
+
+  if ((h.totalMatches || 0) >= 5) {
+    tips.push(`H2H’de toplam ${h.totalMatches} maç oynanmış. ${homeName} ${h.team1Wins || 0}, ${awayName} ${h.team2Wins || 0} galibiyet aldı.`);
+  }
+
+  if (formToPoints(hForm) > formToPoints(aForm) + 3) {
+    tips.push(`<strong>${homeName}</strong> form olarak daha iyi durumda.`);
+  } else if (formToPoints(aForm) > formToPoints(hForm) + 3) {
+    tips.push(`<strong>${awayName}</strong> form olarak daha iyi durumda.`);
+  }
+
+  return tips.slice(0, 6).map(t => `<div class="tip">${t}</div>`).join("");
+}
+
+function calcAdvancedProb(homeStats, awayStats, h2h, homeResults, awayResults, homeName, awayName) {
+  let home = 0, away = 0;
+  const hForm = formToPoints(homeStats.form);
+  const aForm = formToPoints(awayStats.form);
+  home += hForm * 2.2;
+  away += aForm * 2.2;
+
+  const hGoals = parseFloat(homeStats.goalsScoredPerGame) || 1.2;
+  const aGoals = parseFloat(awayStats.goalsScoredPerGame) || 1.2;
+  const hConc = parseFloat(homeStats.goalsConcededPerGame) || 1.1;
+  const aConc = parseFloat(awayStats.goalsConcededPerGame) || 1.1;
+  home += (hGoals * 1.8) + ((2.5 - aConc) * 1.2);
+  away += (aGoals * 1.8) + ((2.5 - hConc) * 1.2);
+
+  if ((h2h.totalMatches || 0) >= 3) {
+    home += (h2h.team1Wins || 0) * 1.4;
+    away += (h2h.team2Wins || 0) * 1.4;
+  }
+  home += 1.8; // ev sahibi avantajı
+
+  const total = home + away || 1;
+  let homeProb = Math.round((home / total) * 100);
+  homeProb = Math.max(15, Math.min(85, homeProb));
+  return { home: homeProb, away: 100 - homeProb };
 }
 
 async function analyze() {
@@ -152,22 +208,11 @@ async function analyze() {
     ]);
 
     const h = h2h.headToHead || h2h || {};
-    const homeFormPts = formToPoints(homeStats.form);
-    const awayFormPts = formToPoints(awayStats.form);
+    const probs = calcAdvancedProb(homeStats, awayStats, h, homeResults, awayResults, homeName, awayName);
+    const tips = generateTips(homeName, awayName, homeStats, awayStats, h, homeResults, awayResults);
 
-    // Basit olasılık hesabı (form + H2H)
-    let homeScore = homeFormPts;
-    let awayScore = awayFormPts;
-    if (h.totalMatches > 0) {
-      homeScore += (h.team1Wins || 0) * 1.5;
-      awayScore += (h.team2Wins || 0) * 1.5;
-    }
-    const total = homeScore + awayScore || 1;
-    const homeProb = Math.round((homeScore / total) * 100);
-    const awayProb = 100 - homeProb;
-
-    const renderLast5 = (results, teamName) => {
-      if (!results || !results.length) return "<p>Son 5 maç bulunamadı.</p>";
+    const renderLast5 = (results) => {
+      if (!results?.length) return "<p>Son 5 maç bulunamadı.</p>";
       return results.slice(0,5).map(m => {
         const home = m.homeTeamName || m.homeTeam?.name || "";
         const away = m.awayTeamName || m.awayTeam?.name || "";
@@ -178,22 +223,16 @@ async function analyze() {
     };
 
     report.innerHTML = `
-      <h3>${homeName} vs ${awayName}</h3>
-      <div class="prob">Kazanma Olasılığı: ${homeName} %${homeProb} | ${awayName} %${awayProb}</div>
-      <p><b>H2H Özet:</b><br>
-         Toplam maç: ${h.totalMatches || 0}<br>
-         ${homeName}: ${h.team1Wins || 0} | ${awayName}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}<br>
-         Ort. gol: ${h.averageGoals || "-"}</p>
-      <hr style="border-color:#293945">
-      <p><b>${homeName} Form:</b> ${formHTML(homeStats.form)} (${homeFormPts} puan / son 5)<br>
-         Gol/Maç: ${homeStats.goalsScoredPerGame || "-"}</p>
-      <p><b>Son 5 maç (${homeName}):</b></p>
-      ${renderLast5(homeResults, homeName)}
-      <hr style="border-color:#293945">
-      <p><b>${awayName} Form:</b> ${formHTML(awayStats.form)} (${awayFormPts} puan / son 5)<br>
-         Gol/Maç: ${awayStats.goalsScoredPerGame || "-"}</p>
-      <p><b>Son 5 maç (${awayName}):</b></p>
-      ${renderLast5(awayResults, awayName)}
+      <div class="prob">${homeName} %${probs.home} &nbsp;|&nbsp; ${awayName} %${probs.away}</div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${probs.home}%"></div></div>
+      <h4 style="margin:15px 0 8px;color:#35ee7b">💡 Bahis İpuçları</h4>
+      ${tips || "<p>Yeterli veri yok.</p>"}
+      <hr style="border-color:#293945;margin:15px 0">
+      <p><b>H2H:</b> ${h.totalMatches || 0} maç | ${homeName}: ${h.team1Wins || 0} | ${awayName}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}</p>
+      <p><b>${homeName} Form:</b> ${formHTML(homeStats.form)}</p>
+      <p><b>Son 5:</b></p>${renderLast5(homeResults)}
+      <p style="margin-top:12px"><b>${awayName} Form:</b> ${formHTML(awayStats.form)}</p>
+      <p><b>Son 5:</b></p>${renderLast5(awayResults)}
     `;
   } catch (err) {
     report.innerHTML = `<p style="color:#ff6b6b">Hata: ${err.message}</p>`;

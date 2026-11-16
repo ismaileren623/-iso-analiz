@@ -91,19 +91,6 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
     </div>
     <div id="standings">Yükleniyor...</div>
   </section>
-
-  <section class="panel">
-    <h2>📅 Yaklaşan Maçlar</h2>
-    <div class="tabs">
-      <button class="active" onclick="loadUpcoming('super',this)">Süper Lig</button>
-      <button onclick="loadUpcoming('premier',this)">Premier</button>
-      <button onclick="loadUpcoming('seriea',this)">Serie A</button>
-      <button onclick="loadUpcoming('laliga',this)">La Liga</button>
-      <button onclick="loadUpcoming('ucl',this)">Şampiyonlar Ligi</button>
-      <button onclick="loadUpcoming('uel',this)">UEFA Avrupa Ligi</button>
-    </div>
-    <div id="upcoming">Yükleniyor...</div>
-  </section>
 </main>
 <footer>© 2026 ISO ANALİZ</footer>
 
@@ -115,8 +102,8 @@ const LEAGUES = {
   premier: "cmr77dvkr005nrx06lp7rvp49",
   seriea: "cmr77dvpd006yrx06zig7907g",
   laliga: "cmr77dvnt006nrx063v3w622e",
-  ucl: "cmr77dw0r00eqrx06s4y8q8k9",   // Şampiyonlar Ligi (GOAL API)
-  uel: "cmr77dw0s00errx06t5z9r0l0"    // UEFA Avrupa Ligi (GOAL API)
+  ucl: "cmr77dw0r00eqrx06s4y8q8k9",
+  uel: "cmr77dw0s00errx06t5z9r0l0"
 };
 let currentLeague = "super";
 let currentStandingsType = "total";
@@ -318,39 +305,24 @@ async function loadStandings(){
   try{
     const path=currentStandingsType==="total"?`/standings/${LEAGUES[currentLeague]}`:`/standings/${LEAGUES[currentLeague]}/${currentStandingsType}`;
     const data=await api(path);
+    if (!data || !data.length) {
+      document.getElementById("standings").innerHTML="Bu lig için puan durumu bulunamadı.";
+      return;
+    }
     let html=`<table><tr><th>#</th><th>Takım</th><th>O</th><th>G</th><th>B</th><th>M</th><th>Av</th><th>P</th></tr>`;
     data.forEach(row=>{
       const gd=(row.overallLeagueGF||0)-(row.overallLeagueGA||0);
-      html+=`<tr><td>${row.overallLeaguePosition}</td><td>${row.team?.name||"-"}</td><td>${row.overallLeaguePlayed}</td><td>${row.overallLeagueW}</td><td>${row.overallLeagueD}</td><td>${row.overallLeagueL}</td><td>${gd}</td><td><b>${row.overallLeaguePTS}</b></td></tr>`;
+      html+=`<tr><td>${row.overallLeaguePosition||"-"}</td><td>${row.team?.name||"-"}</td><td>${row.overallLeaguePlayed||"-"}</td><td>${row.overallLeagueW||"-"}</td><td>${row.overallLeagueD||"-"}</td><td>${row.overallLeagueL||"-"}</td><td>${gd}</td><td><b>${row.overallLeaguePTS||"-"}</b></td></tr>`;
     });
     document.getElementById("standings").innerHTML=html+"</table>";
-  }catch(e){document.getElementById("standings").innerHTML="Puan durumu alınamadı.";}
-}
-
-async function loadUpcoming(key,btn){
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("upcoming").innerHTML="Yükleniyor...";
-  try{
-    const data=await api(`/leagues/${LEAGUES[key]}/fixtures?status=SCHEDULED&limit=40`);
-    if(!data?.length){document.getElementById("upcoming").innerHTML="Yaklaşan maç yok.";return;}
-    const now = new Date();
-    const sorted = data
-      .filter(m => m.kickoffUtc && new Date(m.kickoffUtc) > now)
-      .sort((a,b) => new Date(a.kickoffUtc) - new Date(b.kickoffUtc))
-      .slice(0,12);
-    if(!sorted.length){document.getElementById("upcoming").innerHTML="Yakın tarihli maç yok.";return;}
-    document.getElementById("upcoming").innerHTML=sorted.map(m=>{
-      const date=new Date(m.kickoffUtc).toLocaleString("tr-TR");
-      return `<div class="match">${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}<br><small>${date}</small></div>`;
-    }).join("");
-  }catch(e){document.getElementById("upcoming").innerHTML="Yaklaşan maçlar alınamadı.";}
+  }catch(e){
+    document.getElementById("standings").innerHTML="Puan durumu alınamadı. Lig ID'si yanlış olabilir.";
+  }
 }
 
 loadAllTeams();
 loadLive();
 loadStandings();
-loadUpcoming("super", document.querySelector("#upcoming")?.previousElementSibling?.querySelector("button") || document.createElement("button"));
 setInterval(loadLive, 60000);
 </script>
 </body>

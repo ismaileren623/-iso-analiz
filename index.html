@@ -29,7 +29,6 @@ th{color:#35ee7b}
 .tabs button{flex:1;min-width:110px;padding:10px;background:#18242e;border:1px solid #344451;border-radius:8px;color:white;cursor:pointer;margin-top:0}
 .tabs button.active{background:#27d96d;color:#06120a;border-color:#27d96d}
 footer{text-align:center;color:#8996a2;padding:20px}
-.report-box{background:#192630;padding:15px;border-radius:10px;margin-top:10px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -46,7 +45,7 @@ footer{text-align:center;color:#8996a2;padding:20px}
     <button id="analyzeBtn" onclick="analyze()">ANALİZ ET</button>
     <div class="stat">Ev sahibi<strong id="homeName">-</strong></div>
     <div class="stat">Deplasman<strong id="awayName">-</strong></div>
-    <div id="report" class="report-box">Takımlar yükleniyor...</div>
+    <div id="report" style="margin-top:15px;line-height:1.7">Takımlar yükleniyor...</div>
   </section>
 
   <section class="panel">
@@ -78,6 +77,8 @@ const LEAGUES = {
   laliga: "cmr77dvnt006nrx063v3w622e"
 };
 
+let allTeams = []; // {name, id}
+
 async function api(path) {
   const res = await fetch(BASE + path, {
     headers: { Authorization: `Bearer ${API_KEY}` }
@@ -91,27 +92,29 @@ async function loadAllTeams() {
   selects.forEach(s => s.innerHTML = "<option>Yükleniyor...</option>");
 
   try {
-    const results = await Promise.all(Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`)));
+    const promises = Object.values(LEAGUES).map(id => api(`/leagues/${id}/teams`));
+    const results = await Promise.all(promises);
+
     const seen = new Set();
-    const teams = [];
+    allTeams = [];
 
     results.flat().forEach(team => {
-      if (team?.id && team?.name && !seen.has(team.id)) {
+      if (team && team.id && team.name && !seen.has(team.id)) {
         seen.add(team.id);
-        teams.push({ name: team.name, id: team.id });
+        allTeams.push({ name: team.name, id: team.id });
       }
     });
 
-    teams.sort((a,b) => a.name.localeCompare(b.name));
+    allTeams.sort((a,b) => a.name.localeCompare(b.name));
 
     selects.forEach(sel => {
       sel.innerHTML = "";
-      teams.forEach(t => sel.add(new Option(t.name, t.id)));
+      allTeams.forEach(t => sel.add(new Option(t.name, t.id)));
     });
 
     document.getElementById("report").textContent = "Takımlar yüklendi. Analiz yapabilirsin.";
   } catch(e) {
-    document.getElementById("report").innerHTML = "<span style='color:#ff6b6b'>Takımlar yüklenemedi.</span>";
+    document.getElementById("report").innerHTML = "<span style='color:#ff6b6b'>Takımlar yüklenemedi. Sayfayı yenile.</span>";
   }
 }
 
@@ -126,36 +129,19 @@ async function analyze() {
   if (homeId === awayId) { report.textContent = "Farklı takımlar seç."; return; }
 
   btn.disabled = true;
-  report.innerHTML = "<p style='color:#35ee7b'>Detaylı analiz yapılıyor...</p>";
+  report.innerHTML = "<p style='color:#35ee7b'>Analiz yapılıyor...</p>";
   document.getElementById("homeName").textContent = homeName;
   document.getElementById("awayName").textContent = awayName;
 
   try {
-    const [h2h, homeStats, awayStats] = await Promise.all([
-      api(`/h2h/${homeId}/${awayId}`).catch(() => ({})),
-      api(`/teams/${homeId}/statistics`).catch(() => ({})),
-      api(`/teams/${awayId}/statistics`).catch(() => ({}))
-    ]);
-
+    const h2h = await api(`/h2h/${homeId}/${awayId}`);
     const h = h2h.headToHead || h2h || {};
 
     report.innerHTML = `
-      <h3>${homeName} vs ${awayName}</h3>
-      <p><b>H2H Özet:</b><br>
-         Toplam maç: ${h.totalMatches || 0}<br>
-         ${homeName}: ${h.team1Wins || 0} galibiyet<br>
-         ${awayName}: ${h.team2Wins || 0} galibiyet<br>
-         Beraberlik: ${h.draws || 0}<br>
-         Ort. gol: ${h.averageGoals || "-"}</p>
-      <hr style="border-color:#293945">
-      <p><b>${homeName} İstatistikleri:</b><br>
-         Form: ${homeStats.form || "-"}<br>
-         Gol/Maç: ${homeStats.goalsScoredPerGame || "-"}<br>
-         Yenilen gol/Maç: ${homeStats.goalsConcededPerGame || "-"}</p>
-      <p><b>${awayName} İstatistikleri:</b><br>
-         Form: ${awayStats.form || "-"}<br>
-         Gol/Maç: ${awayStats.goalsScoredPerGame || "-"}<br>
-         Yenilen gol/Maç: ${awayStats.goalsConcededPerGame || "-"}</p>
+      <h3>${homeName} - ${awayName}</h3>
+      <p><b>H2H:</b> ${h.totalMatches || 0} maç<br>
+         ${homeName}: ${h.team1Wins || 0} | ${awayName}: ${h.team2Wins || 0} | Beraberlik: ${h.draws || 0}</p>
+      <p><b>Ort. gol:</b> ${h.averageGoals || "-"}</p>
     `;
   } catch (err) {
     report.innerHTML = `<p style="color:#ff6b6b">Hata: ${err.message}</p>`;

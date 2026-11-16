@@ -8,10 +8,10 @@
 *{box-sizing:border-box}
 body{margin:0;background:#080d12;color:white;font-family:Arial,sans-serif;transition:.3s}
 body.light{background:#f4f6f8;color:#111}
-header{background:#101820;padding:15px 20px;text-align:center;border-bottom:1px solid #293945;position:sticky;top:0;z-index:10}
+header{background:#101820;padding:15px 20px;text-align:center;border-bottom:1px solid #293945;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:center;position:relative}
 body.light header{background:#fff;border-color:#ddd}
 .logo{font-size:26px;font-weight:bold;color:#35ee7b}
-.theme-btn{position:absolute;right:15px;top:15px;background:#18242e;color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.theme-btn{position:absolute;right:15px;top:50%;transform:translateY(-50%);background:#18242e;color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
 main{max-width:980px;margin:auto;padding:15px}
 .hero{text-align:center;padding:15px 5px}
 h1{font-size:28px;margin:10px 0} h1 span{color:#35ee7b}
@@ -19,8 +19,8 @@ h1{font-size:28px;margin:10px 0} h1 span{color:#35ee7b}
 body.light .panel{background:#fff;border-color:#ddd}
 h2{margin-top:0;font-size:20px}
 label{display:block;margin:10px 0 5px;color:#aab7c3}
-select,button,input{width:100%;padding:12px;border-radius:8px;border:1px solid #344451;background:#18242e;color:white;font-size:15px}
-body.light select,body.light button,body.light input{background:#f0f0f0;color:#111;border-color:#ccc}
+select,button,input,textarea{width:100%;padding:12px;border-radius:8px;border:1px solid #344451;background:#18242e;color:white;font-size:15px}
+body.light select,body.light button,body.light input,body.light textarea{background:#f0f0f0;color:#111;border-color:#ccc}
 button{margin-top:10px;background:#27d96d;color:#06120a;font-weight:bold;border:0;cursor:pointer}
 button:disabled{opacity:.6}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
@@ -44,6 +44,9 @@ body.light .match{background:#f5f5f5}
 .fav{cursor:pointer;color:#aaa;font-size:18px}
 .fav.active{color:#ffd700}
 .alert{background:#2a1f0a;border:1px solid #f0c040;padding:12px;border-radius:10px;margin-bottom:12px;text-align:center}
+.coupon-box{background:#192630;padding:14px;border-radius:10px;margin-top:10px}
+.share-btns{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.share-btns button{flex:1;min-width:140px;margin-top:0;padding:10px}
 .about{background:#111a23;border:1px solid #293945;border-radius:15px;padding:22px;margin-top:20px;line-height:1.7}
 body.light .about{background:#fff;border-color:#ddd}
 .about h2{color:#35ee7b;margin-top:0}
@@ -69,6 +72,18 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
     <div class="stat">Ev sahibi<strong id="homeName">-</strong></div>
     <div class="stat">Deplasman<strong id="awayName">-</strong></div>
     <div id="report" class="report-box">Takımlar yükleniyor...</div>
+  </section>
+
+  <section class="panel">
+    <h2>🎫 Günün Kuponu</h2>
+    <div class="coupon-box">
+      <textarea id="couponText" rows="4" placeholder="Kupon detayını buraya yaz...&#10;Örnek:&#10;Galatasaray MS1&#10;Arsenal 2.5 Üst&#10;Barcelona KG Var"></textarea>
+      <div class="share-btns">
+        <button onclick="shareCoupon('whatsapp')">WhatsApp'ta Paylaş</button>
+        <button onclick="shareCoupon('twitter')">X (Twitter)'da Paylaş</button>
+      </div>
+      <p style="font-size:12px;color:#aaa;margin-top:10px">Bu sadece analiz amaçlıdır. Bahis oynamadan önce kendi kararınızı verin.</p>
+    </div>
   </section>
 
   <section class="panel">
@@ -119,6 +134,19 @@ const LEAGUES = {
 let currentLeague = "super";
 let currentStandingsType = "total";
 let allTeams = [];
+
+function shareCoupon(platform) {
+  const text = document.getElementById("couponText").value.trim();
+  if (!text) { alert("Önce kupon detayını yaz."); return; }
+  const siteUrl = "https://ismaileren623.github.io/-iso-analiz";
+  const message = `ISO ANALİZ Kuponu:\n\n${text}\n\nKaynak: ${siteUrl}`;
+  const encoded = encodeURIComponent(message);
+  if (platform === "whatsapp") {
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  } else if (platform === "twitter") {
+    window.open(`https://twitter.com/intent/tweet?text=${encoded}`, "_blank");
+  }
+}
 
 async function api(path) {
   const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${API_KEY}` } });

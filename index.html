@@ -35,12 +35,14 @@ body.light .match{background:#f5f5f5}
 .prob{font-size:18px;font-weight:bold;margin:10px 0;text-align:center}
 .prob-bar{height:7px;background:#293945;border-radius:4px;overflow:hidden;margin:6px 0 12px}
 .prob-fill{height:100%;background:#35ee7b}
-.ai-box{background:#1a2a1a;border:1px solid #35ee7b;border-radius:10px;padding:14px;margin-top:12px;line-height:1.6}
+.ai-box{background:#1a2a1a;border:1px solid #35ee7b;border-radius:10px;padding:14px;margin-top:12px;line-height:1.65;font-size:14.5px}
 .ai-btn{background:#35ee7b;color:#06120a}
 .h2h-table{width:100%;font-size:13px;margin-top:10px}
 .h2h-table td{padding:6px 4px;border-bottom:1px solid #293945}
 .about{background:#111a23;border:1px solid #293945;border-radius:15px;padding:22px;margin-top:20px;line-height:1.7}
 body.light .about{background:#fff;border-color:#ddd}
+.question-box{display:flex;gap:8px;margin-top:10px}
+.question-box input{flex:1}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
 .modal-content{background:#111a23;padding:20px;border-radius:12px;max-width:500px;width:90%;max-height:80vh;overflow:auto}
 body.light .modal-content{background:#fff;color:#111}
@@ -107,10 +109,10 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
 
   <section class="about">
     <h2>Hakkımızda</h2>
-    <p><strong>ISO ANALİZ</strong>, futbolseverlerin maçları daha iyi anlaması ve veriye dayalı kararlar alabilmesi için oluşturulmuş bağımsız bir analiz platformudur.</p>
-    <p>Kurucu <strong>İsmail Eren</strong> olarak, futbola olan tutkum ve veri odaklı düşünme yaklaşımımla bu projeyi hayata geçirdim. Amacım karmaşık istatistikleri herkesin anlayabileceği sade bir arayüzle sunmaktır.</p>
+    <p><strong>ISO ANALİZ</strong>, futbolseverlerin maçları daha iyi anlaması için oluşturulmuş bağımsız bir analiz platformudur.</p>
+    <p>Kurucu <strong>İsmail Eren</strong> olarak bu projeyi hayata geçirdim. Amacım veriye dayalı, sade ve kullanışlı bir analiz aracı sunmaktır.</p>
     <p style="margin-top:15px;color:#35ee7b;font-weight:bold">— İsmail Eren, Kurucu</p>
-    <p style="margin-top:10px">Sponsor: <strong>Star Cafe</strong></p>
+    <p>Sponsor: <strong>Star Cafe</strong></p>
   </section>
 </main>
 <footer>© 2026 ISO ANALİZ • Sponsor: Star Cafe</footer>
@@ -191,20 +193,30 @@ function analyzeLast(results, team) {
   return {wins:w, goalsFor:gf, goalsAgainst:ga, over25:o, played: Math.min(10, results.length)};
 }
 
-function generateAI(homeName, awayName, probs, hL, aL) {
+function smartAI(question, data) {
+  const { homeName, awayName, probs, hL, aL, h } = data;
+  const q = question.toLowerCase();
   const fav = probs.home > probs.away ? homeName : awayName;
-  const conf = Math.abs(probs.home - probs.away);
-  let text = `<b>🤖 Yapay Zeka Analizi</b><br><br>`;
-  text += `<b>Kim kazanır?</b><br>`;
-  if (conf > 20) text += `${fav} daha güçlü görünüyor (%${Math.max(probs.home, probs.away)}).<br><br>`;
-  else text += `Dengeli maç. Hafif avantaj ${fav} tarafında.<br><br>`;
+  const bothLikely = (hL.goalsFor/(hL.played||1) > 1.1 && aL.goalsFor/(aL.played||1) > 1.1);
+  const overLikely = (hL.over25 + aL.over25) >= 7;
 
-  const bothScore = (hL.goalsFor / (hL.played||1) > 1.0 && aL.goalsFor / (aL.played||1) > 1.0);
-  text += `<b>İki takım da gol atar mı?</b><br>${bothScore ? "Evet, yüksek ihtimal." : "Orta-düşük ihtimal."}<br><br>`;
-
-  const over = (hL.over25 + aL.over25) >= 7;
-  text += `<b>2.5 Üst / Alt:</b> ${over ? "Üst daha mantıklı." : "Alt tarafı daha güvenli."}`;
-  return text;
+  if (q.includes("kim kazan") || q.includes("kim alır") || q.includes("favori")) {
+    return `${fav} bu maçı kazanmaya daha yakın görünüyor. Olasılık hesaplamasına göre %${Math.max(probs.home, probs.away)} şans veriliyor. Son maçlardaki form ve gol üretimi de bunu destekliyor. Ancak futbolda sürprizler her zaman mümkündür.`;
+  }
+  if (q.includes("karşılıklı gol") || q.includes("iki takım da gol") || q.includes("kg var")) {
+    return bothLikely 
+      ? `Evet, karşılıklı gol olma ihtimali yüksek. Her iki takım da son maçlarda gol atma eğiliminde. ${homeName} ortalama ${(hL.goalsFor/(hL.played||1)).toFixed(1)} gol atarken, ${awayName} ${(aL.goalsFor/(aL.played||1)).toFixed(1)} gol atıyor.`
+      : `Karşılıklı gol ihtimali orta-düşük seviyede. Bir tarafın savunması daha sağlam görünüyor.`;
+  }
+  if (q.includes("2.5") || q.includes("üst") || q.includes("alt")) {
+    return overLikely
+      ? `2.5 Üst daha mantıklı görünüyor. Her iki takımın son maçlarında toplam gol sayısı genellikle yüksek seyretti.`
+      : `2.5 Alt tarafı daha güvenli olabilir. Maçların bir kısmı daha kontrollü geçiyor.`;
+  }
+  if (q.includes("tahmin") || q.includes("ne olur")) {
+    return `En mantıklı tahmin ${fav} galibiyeti ve ${bothLikely ? "karşılıklı gol" : "düşük skorlu bir maç"}. Form ve son 10 maç verilerine göre bu senaryo daha güçlü.`;
+  }
+  return `Sorunu anladım. Mevcut verilere göre ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Detaylı yorum için daha spesifik sorabilirsin (örnek: "2.5 üst olur mu?", "Karşılıklı gol var mı?").`;
 }
 
 async function analyze() {
@@ -236,23 +248,15 @@ async function analyze() {
     hp = Math.max(22, Math.min(78, Math.round(hp)));
     const probs = { home: hp, away: 100 - hp };
 
-    lastAnalysis = { homeName, awayName, probs, hL, aL };
+    lastAnalysis = { homeName, awayName, probs, hL, aL, h };
 
-    let h2hHTML = "";
+    let h2hHTML = matches.length ? `<h4 style="margin:15px 0 8px;color:#35ee7b">Aralarındaki Maçlar</h4><table class="h2h-table">` : "<p>H2H verisi yok.</p>";
     if (matches.length) {
-      h2hHTML = `<h4 style="margin:15px 0 8px;color:#35ee7b">Aralarındaki Maçlar</h4>
-      <table class="h2h-table">`;
-      matches.slice(0, 12).forEach(m => {
+      matches.slice(0, 10).forEach(m => {
         const date = m.kickoffUtc || m.date ? new Date(m.kickoffUtc || m.date).toLocaleDateString("tr-TR") : "-";
-        const hs = m.homeTeamScore ?? m.homeScore ?? "-";
-        const as = m.awayTeamScore ?? m.awayScore ?? "-";
-        const home = m.homeTeamName || m.homeTeam?.name || "";
-        const away = m.awayTeamName || m.awayTeam?.name || "";
-        h2hHTML += `<tr><td>${date}</td><td><b>${home}</b></td><td>${hs} - ${as}</td><td><b>${away}</b></td></tr>`;
+        h2hHTML += `<tr><td>${date}</td><td><b>${m.homeTeamName||""}</b></td><td>${m.homeTeamScore??"-"} - ${m.awayTeamScore??"-"}</td><td><b>${m.awayTeamName||""}</b></td></tr>`;
       });
       h2hHTML += "</table>";
-    } else {
-      h2hHTML = `<p>H2H maç verisi bulunamadı.</p>`;
     }
 
     report.innerHTML = `
@@ -261,7 +265,11 @@ async function analyze() {
       ${h2hHTML}
       <p style="margin-top:12px"><b>${homeName} son 10:</b> ${hL.wins} galibiyet</p>
       <p><b>${awayName} son 10:</b> ${aL.wins} galibiyet</p>
-      <button class="ai-btn" onclick="showAI()">🤖 Yapay Zeka’ya Sor</button>
+      <button class="ai-btn" onclick="showAI()">🤖 Yapay Zeka Analizi</button>
+      <div class="question-box">
+        <input id="aiQuestion" placeholder="Sorunu yaz (örnek: Kim kazanır? KG var mı? 2.5 üst?)">
+        <button onclick="askAI()">Sor</button>
+      </div>
       <div id="aiResult"></div>
     `;
   } catch(e) {
@@ -271,8 +279,16 @@ async function analyze() {
 
 function showAI() {
   if (!lastAnalysis) return;
-  const { homeName, awayName, probs, hL, aL } = lastAnalysis;
-  document.getElementById("aiResult").innerHTML = `<div class="ai-box">${generateAI(homeName, awayName, probs, hL, aL)}</div>`;
+  const answer = smartAI("kim kazanır", lastAnalysis);
+  document.getElementById("aiResult").innerHTML = `<div class="ai-box">${answer}</div>`;
+}
+
+function askAI() {
+  if (!lastAnalysis) return alert("Önce analiz yap.");
+  const q = document.getElementById("aiQuestion").value.trim();
+  if (!q) return;
+  const answer = smartAI(q, lastAnalysis);
+  document.getElementById("aiResult").innerHTML = `<div class="ai-box"><b>Soru:</b> ${q}<br><br>${answer}</div>`;
 }
 
 function shareCoupon(p) {

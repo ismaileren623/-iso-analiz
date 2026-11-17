@@ -42,7 +42,8 @@ body.light .match{background:#f5f5f5}
 .about{background:#111a23;border:1px solid #293945;border-radius:15px;padding:22px;margin-top:20px;line-height:1.7}
 body.light .about{background:#fff;border-color:#ddd}
 .question-box{display:flex;gap:8px;margin-top:10px}
-.question-box input{flex:1}
+.question-box input{flex:1;color:#fff}
+body.light .question-box input{color:#111}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
 .modal-content{background:#111a23;padding:20px;border-radius:12px;max-width:500px;width:90%;max-height:80vh;overflow:auto}
 body.light .modal-content{background:#fff;color:#111}
@@ -194,29 +195,49 @@ function analyzeLast(results, team) {
 }
 
 function smartAI(question, data) {
-  const { homeName, awayName, probs, hL, aL, h } = data;
-  const q = question.toLowerCase();
+  const { homeName, awayName, probs, hL, aL } = data;
+  const q = question.toLowerCase().trim();
   const fav = probs.home > probs.away ? homeName : awayName;
-  const bothLikely = (hL.goalsFor/(hL.played||1) > 1.1 && aL.goalsFor/(aL.played||1) > 1.1);
-  const overLikely = (hL.over25 + aL.over25) >= 7;
+  const bothLikely = (hL.goalsFor/(hL.played||1) > 1.05 && aL.goalsFor/(aL.played||1) > 1.05);
+  const overLikely = (hL.over25 + aL.over25) >= 6;
 
-  if (q.includes("kim kazan") || q.includes("kim alır") || q.includes("favori")) {
-    return `${fav} bu maçı kazanmaya daha yakın görünüyor. Olasılık hesaplamasına göre %${Math.max(probs.home, probs.away)} şans veriliyor. Son maçlardaki form ve gol üretimi de bunu destekliyor. Ancak futbolda sürprizler her zaman mümkündür.`;
+  // Korner
+  if (q.includes("korner") || q.includes("corner")) {
+    const estimate = overLikely ? "9-12 arası" : "7-10 arası";
+    return `Korner sayısı için net veri yok ama gol beklentisine göre toplam **${estimate}** korner bekleniyor. ${fav} daha çok korner kullanabilir.`;
   }
-  if (q.includes("karşılıklı gol") || q.includes("iki takım da gol") || q.includes("kg var")) {
+
+  // Sarı kart
+  if (q.includes("sarı") || q.includes("kart") || q.includes("sarı kart")) {
+    return `Sarı kart tahmini: Toplam **4-6 sarı kart** bekleniyor. Sert bir maç olursa bu sayı artabilir. Her iki takım da ortalama 2-3 kart görebilir.`;
+  }
+
+  // Kim kazanır
+  if (q.includes("kim kazan") || q.includes("kim alır") || q.includes("favori") || q.includes("kazanır")) {
+    return `${fav} bu maçı kazanmaya daha yakın. Olasılık: **%${Math.max(probs.home, probs.away)}**. Form ve son maçlardaki galibiyet sayısı bunu destekliyor.`;
+  }
+
+  // Karşılıklı gol
+  if (q.includes("karşılıklı") || q.includes("iki takım") || q.includes("kg") || q.includes("gol olur mu")) {
     return bothLikely 
-      ? `Evet, karşılıklı gol olma ihtimali yüksek. Her iki takım da son maçlarda gol atma eğiliminde. ${homeName} ortalama ${(hL.goalsFor/(hL.played||1)).toFixed(1)} gol atarken, ${awayName} ${(aL.goalsFor/(aL.played||1)).toFixed(1)} gol atıyor.`
-      : `Karşılıklı gol ihtimali orta-düşük seviyede. Bir tarafın savunması daha sağlam görünüyor.`;
+      ? `**Evet**, karşılıklı gol ihtimali yüksek. Her iki takım da son maçlarda gol atma eğiliminde.`
+      : `Karşılıklı gol ihtimali **orta-düşük**. Bir tarafın savunması daha sağlam görünüyor.`;
   }
-  if (q.includes("2.5") || q.includes("üst") || q.includes("alt")) {
+
+  // 2.5 üst/alt
+  if (q.includes("2.5") || q.includes("üst") || q.includes("alt") || q.includes("gol sayısı")) {
     return overLikely
-      ? `2.5 Üst daha mantıklı görünüyor. Her iki takımın son maçlarında toplam gol sayısı genellikle yüksek seyretti.`
-      : `2.5 Alt tarafı daha güvenli olabilir. Maçların bir kısmı daha kontrollü geçiyor.`;
+      ? `**2.5 Üst** daha mantıklı. Son maçlarda toplam gol sayısı genellikle yüksek.`
+      : `**2.5 Alt** tarafı daha güvenli görünüyor.`;
   }
-  if (q.includes("tahmin") || q.includes("ne olur")) {
-    return `En mantıklı tahmin ${fav} galibiyeti ve ${bothLikely ? "karşılıklı gol" : "düşük skorlu bir maç"}. Form ve son 10 maç verilerine göre bu senaryo daha güçlü.`;
+
+  // Genel tahmin
+  if (q.includes("ne olur") || q.includes("tahmin") || q.includes("ne beklenir")) {
+    return `En mantıklı senaryo: **${fav} galibiyeti** ve ${bothLikely ? "karşılıklı gol" : "düşük skor"}. Toplam korner 8-11, sarı kart 4-6 arası olabilir.`;
   }
-  return `Sorunu anladım. Mevcut verilere göre ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Detaylı yorum için daha spesifik sorabilirsin (örnek: "2.5 üst olur mu?", "Karşılıklı gol var mı?").`;
+
+  // Varsayılan
+  return `Sorunu aldım. Mevcut verilere göre **${fav}** hafif favori (%${Math.max(probs.home, probs.away)}). Daha spesifik sorabilirsin: "kaç korner olur?", "sarı kart sayısı?", "2.5 üst mü?" gibi.`;
 }
 
 async function analyze() {
@@ -267,7 +288,7 @@ async function analyze() {
       <p><b>${awayName} son 10:</b> ${aL.wins} galibiyet</p>
       <button class="ai-btn" onclick="showAI()">🤖 Yapay Zeka Analizi</button>
       <div class="question-box">
-        <input id="aiQuestion" placeholder="Sorunu yaz (örnek: Kim kazanır? KG var mı? 2.5 üst?)">
+        <input id="aiQuestion" placeholder="Sorunu yaz (örnek: kaç korner olur? sarı kart? kim kazanır?)">
         <button onclick="askAI()">Sor</button>
       </div>
       <div id="aiResult"></div>

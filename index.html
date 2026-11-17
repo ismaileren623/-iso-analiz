@@ -203,38 +203,70 @@ function predictScore(homeName, awayName, probs, hL, aL) {
   aGoals = Math.max(0, Math.min(3, aGoals));
   if (probs.home > 62) hGoals = Math.max(hGoals, aGoals + 1);
   return `${hGoals}-${aGoals}`;
-}async function callRealAI(question) {
-  if (!lastAnalysis) return;
+}
 
-  const resultBox = document.getElementById("aiResult");
-  if (!resultBox) return;
+function isoAnalizBotu(question, data) {
+  if (!data) return "**İso Analiz Botu:** Önce iki takım seçip analiz yapman lazım.";
+  const { homeName, awayName, probs, hL, aL } = data;
+  const q = (question || "").toLowerCase().trim();
+  const fav = probs.home >= probs.away ? homeName : awayName;
+  const hAvg = (hL.goalsFor / (hL.played || 1)).toFixed(1);
+  const aAvg = (aL.goalsFor / (aL.played || 1)).toFixed(1);
+  const score = predictScore(homeName, awayName, probs, hL, aL);
+  const bothLikely = parseFloat(hAvg) > 1.05 && parseFloat(aAvg) > 1.0;
 
-  resultBox.textContent = "Yapay zekâ yanıt hazırlıyor...";
-
-  try {
-    const response = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        homeTeam: lastAnalysis.homeName,
-        awayTeam: lastAnalysis.awayName,
-        statistics: lastAnalysis,
-        question
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || "Bağlantı hatası");
-    }
-
-    const ai = data.analysis;
-    resultBox.textContent =
-      ai?.response || ai?.output || JSON.stringify(ai);
-
-  } catch (error) {
-    resultBox.textContent = "Hata: " + error.message;
+  // Selamlaşma
+  if (q.includes("merhaba") || q.includes("selam") || q.includes("hey") || q.includes("sa") || q === "naber") {
+    return `**İso Analiz Botu:** Merhaba! ${homeName} vs ${awayName} maçını analiz ettim. Şu an ${fav} hafif favori görünüyor (%${Math.max(probs.home, probs.away)}). Ne sormak istersin?`;
   }
+
+  // Skor
+  if (q.includes("kaç kaç") || q.includes("skor") || q.includes("biter") || q.includes("sonuç")) {
+    return `**İso Analiz Botu:** Tahmini skor **${score}**. ${homeName} maç başına ortalama ${hAvg} gol atarken, ${awayName} ${aAvg} gol atıyor. ${fav} daha fazla gol bulma potansiyeline sahip.`;
+  }
+
+  // Sarı kart
+  if (q.includes("sarı") || q.includes("kart")) {
+    const intensity = (hL.wins + aL.wins) > 11 ? "yüksek" : "orta";
+    const range = intensity === "yüksek" ? "5-7" : "3-5";
+    return `**İso Analiz Botu:** Bu maç için toplam **${range} sarı kart** bekliyorum. Tempo ${intensity} olursa üst sınıra yaklaşabilir. ${fav} daha baskılı oynayacağı için rakibinden biraz daha fazla kart görebilir.`;
+  }
+
+  // Korner
+  if (q.includes("korner") || q.includes("corner")) {
+    const range = bothLikely || parseFloat(hAvg) + parseFloat(aAvg) > 2.5 ? "9-13" : "7-11";
+    return `**İso Analiz Botu:** Toplam korner tahmini **${range}**. ${fav} daha fazla topa sahip olma eğiliminde olduğu için korner üretiminde önde olabilir.`;
+  }
+
+  // Kim kazanır
+  if (q.includes("kim kazan") || q.includes("kim alır") || q.includes("favori") || q.includes("kazanır")) {
+    return `**İso Analiz Botu:** ${fav} kazanmaya daha yakın (**%${Math.max(probs.home, probs.away)}**). Son 10 maçta ${fav === homeName ? hL.wins : aL.wins} galibiyet almış. Form ve gol üretimi de bunu destekliyor.`;
+  }
+
+  // KG
+  if (q.includes("karşılıklı") || q.includes("iki takım") || q.includes("kg")) {
+    return bothLikely
+      ? `**İso Analiz Botu:** Evet, **karşılıklı gol** ihtimalini yüksek görüyorum. ${homeName} (${hAvg} gol) ve ${awayName} (${aAvg} gol) her ikisi de gol atma eğiliminde.`
+      : `**İso Analiz Botu:** Karşılıklı gol ihtimali orta-düşük seviyede. Bir tarafın savunması daha sağlam görünüyor.`;
+  }
+
+  // 2.5
+  if (q.includes("2.5") || q.includes("üst") || q.includes("alt")) {
+    const over = (hL.over25 + aL.over25) >= 6;
+    return over
+      ? `**İso Analiz Botu:** **2.5 Üst** daha mantıklı görünüyor. Son maçlarda toplam gol sayısı genellikle yüksek.`
+      : `**İso Analiz Botu:** **2.5 Alt** tarafı daha güvenli olabilir.`;
+  }
+
+  // Genel / Boş soru
+  if (!q || q.includes("analiz") || q.includes("ne düşünüyorsun") || q.includes("yorum")) {
+    return `**İso Analiz Botu:** ${homeName} vs ${awayName} maçında ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Tahmini skor **${score}**. ${homeName} son 10’da ${hL.wins} galibiyet (${hAvg} gol), ${awayName} ${aL.wins} galibiyet (${aAvg} gol). ${bothLikely ? "Karşılıklı gol mümkün." : "Daha kontrollü bir maç olabilir."} Başka ne merak ediyorsun?`;
+  }
+
+  // Varsayılan akıllı cevap
+  return `**İso Analiz Botu:** Anladım. Bu maçta ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Tahmini skor **${score}**. ${homeName} ${hAvg} gol, ${awayName} ${aAvg} gol ortalamasına sahip. Daha spesifik sorarsan (korner, kart, skor, kim kazanır, 2.5 üst) daha net cevap verebilirim.`;
+}
+
 async function analyze() {
   const homeId = document.getElementById("home").value;
   const awayId = document.getElementById("away").value;

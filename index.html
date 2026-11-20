@@ -9,11 +9,17 @@
 *{box-sizing:border-box}
 body{margin:0;background:#080d12;color:white;font-family:Arial,sans-serif;transition:.3s}
 body.light{background:#f4f6f8;color:#111}
-header{background:#101820;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #293945;position:sticky;top:0;z-index:10}
+header{background:#101820;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #293945;position:sticky;top:0;z-index:10;gap:10px}
 body.light header{background:#fff;border-color:#ddd}
-.logo{font-size:24px;font-weight:bold;color:#35ee7b}
-.sponsor{font-size:13px;color:#f0c040}
-.theme-btn{background:#18242e;color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.logo{font-size:22px;font-weight:bold;color:#35ee7b;white-space:nowrap}
+.sponsors{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.sponsor-link{display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;transition:.2s}
+.sponsor-link.star{background:#2a2410;color:#f0c040;border:1px solid #5a4a1a}
+.sponsor-link.onewin{background:#0a1628;color:#00a3ff;border:1px solid #1a3a5c}
+.sponsor-link:hover{opacity:.85;transform:translateY(-1px)}
+.onewin-logo{font-weight:800;font-size:15px;letter-spacing:-0.5px}
+.onewin-logo span{color:#00a3ff}
+.theme-btn{background:#18242e;color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;flex-shrink:0}
 main{max-width:980px;margin:auto;padding:15px}
 .panel{background:#111a23;border:1px solid #293945;border-radius:15px;padding:18px;margin-bottom:16px}
 body.light .panel{background:#fff;border-color:#ddd}
@@ -48,12 +54,36 @@ body.light .question-box input{color:#111}
 .modal-content{background:#111a23;padding:20px;border-radius:12px;max-width:500px;width:90%;max-height:80vh;overflow:auto}
 body.light .modal-content{background:#fff;color:#111}
 footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.stat-card{background:#0f1820;border:1px solid #2a3a48;border-radius:10px;padding:12px;text-align:center}
+body.light .stat-card{background:#f0f4f8;border-color:#d0d8e0}
+.stat-card .label{font-size:11px;color:#8a9aab;margin-bottom:4px}
+.stat-card .value{font-size:18px;font-weight:bold;color:#35ee7b}
+.score-pred{background:linear-gradient(135deg,#1a2a1a,#0f1a0f);border:1px solid #35ee7b;border-radius:12px;padding:16px;text-align:center;margin:14px 0}
+.score-pred .title{font-size:12px;color:#8a9aab;margin-bottom:6px}
+.score-pred .score{font-size:28px;font-weight:800;color:#35ee7b;letter-spacing:2px}
+.form-badges{display:flex;gap:4px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.form-badge{width:22px;height:22px;border-radius:4px;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.form-badge.W{background:#27d96d;color:#06120a}
+.form-badge.D{background:#f0c040;color:#1a1500}
+.form-badge.L{background:#ff6b6b;color:#fff}
+.sponsor-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid #293945}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  header{flex-wrap:wrap}
+  .sponsors{order:3;width:100%;justify-content:center;margin-top:6px}
+}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">ISO ANALİZ</div>
-  <div class="sponsor">Sponsor: Star Cafe</div>
+  <div class="sponsors">
+    <a class="sponsor-link star" href="#" title="Star Cafe" onclick="return false;">☕ Star Cafe</a>
+    <a class="sponsor-link onewin" href="https://1win.co.tz/" target="_blank" rel="noopener noreferrer" title="1win">
+      <span class="onewin-logo"><span>1</span>win</span>
+    </a>
+  </div>
   <button class="theme-btn" onclick="toggleTheme()">🌙</button>
 </header>
 
@@ -113,10 +143,16 @@ footer{text-align:center;color:#8996a2;padding:20px;font-size:13px}
     <p><strong>ISO ANALİZ</strong>, futbolseverlerin maçları daha iyi anlaması için oluşturulmuş bağımsız bir analiz platformudur.</p>
     <p>Kurucu <strong>İsmail Eren</strong> olarak bu projeyi hayata geçirdim. Amacım veriye dayalı, sade ve kullanışlı bir analiz aracı sunmaktır.</p>
     <p style="margin-top:15px;color:#35ee7b;font-weight:bold">— İsmail Eren, Kurucu</p>
-    <p>Sponsor: <strong>Star Cafe</strong></p>
+    
+    <div class="sponsor-bar">
+      <a class="sponsor-link star" href="#" onclick="return false;">☕ Star Cafe</a>
+      <a class="sponsor-link onewin" href="https://1win.co.tz/" target="_blank" rel="noopener noreferrer">
+        <span class="onewin-logo"><span>1</span>win</span>
+      </a>
+    </div>
   </section>
 </main>
-<footer>© 2026 ISO ANALİZ • Sponsor: Star Cafe</footer>
+<footer>© 2026 ISO ANALİZ • Sponsorlar: Star Cafe &amp; 1win</footer>
 
 <script>
 const API_KEY = "gapk_8b131482bc312ca482baef12447de5f5e6a9a2c9db8d1f75ca4f8d8458e85494";
@@ -180,8 +216,9 @@ async function loadAllTeams() {
 function formToPoints(f) { return f ? f.split("").reduce((p,c)=>p+(c==="W"?3:c==="D"?1:0),0) : 0; }
 
 function analyzeLast(results, team) {
-  if (!results?.length) return {wins:0,goalsFor:0,goalsAgainst:0,over25:0,played:0};
-  let w=0,gf=0,ga=0,o=0;
+  if (!results?.length) return {wins:0, draws:0, losses:0, goalsFor:0, goalsAgainst:0, over25:0, played:0, form:[]};
+  let w=0, d=0, l=0, gf=0, ga=0, o=0;
+  const form = [];
   results.slice(0,10).forEach(m => {
     const hs = +(m.homeTeamScore ?? m.homeScore ?? 0);
     const as = +(m.awayTeamScore ?? m.awayScore ?? 0);
@@ -189,9 +226,11 @@ function analyzeLast(results, team) {
     const sc = isHome ? hs : as, con = isHome ? as : hs;
     gf += sc; ga += con;
     if (hs+as > 2.5) o++;
-    if (sc > con) w++;
+    if (sc > con) { w++; form.push("W"); }
+    else if (sc === con) { d++; form.push("D"); }
+    else { l++; form.push("L"); }
   });
-  return {wins:w, goalsFor:gf, goalsAgainst:ga, over25:o, played: Math.min(10, results.length)};
+  return {wins:w, draws:d, losses:l, goalsFor:gf, goalsAgainst:ga, over25:o, played: Math.min(10, results.length), form};
 }
 
 function predictScore(homeName, awayName, probs, hL, aL) {
@@ -205,6 +244,11 @@ function predictScore(homeName, awayName, probs, hL, aL) {
   return `${hGoals}-${aGoals}`;
 }
 
+function formBadges(form) {
+  if (!form?.length) return "";
+  return `<div class="form-badges">${form.map(f => `<span class="form-badge ${f}">${f}</span>`).join("")}</div>`;
+}
+
 function isoAnalizBotu(question, data) {
   if (!data) return "**İso Analiz Botu:** Önce iki takım seçip analiz yapman lazım.";
   const { homeName, awayName, probs, hL, aL } = data;
@@ -215,103 +259,103 @@ function isoAnalizBotu(question, data) {
   const score = predictScore(homeName, awayName, probs, hL, aL);
   const bothLikely = parseFloat(hAvg) > 1.05 && parseFloat(aAvg) > 1.0;
 
-  // Selamlaşma
-  if (q.includes("merhaba") || q.includes("selam") || q.includes("hey") || q.includes("sa") || q === "naber") {
-    return `**İso Analiz Botu:** Merhaba! ${homeName} vs ${awayName} maçını analiz ettim. Şu an ${fav} hafif favori görünüyor (%${Math.max(probs.home, probs.away)}). Ne sormak istersin?`;
+  if (q.includes("merhaba") || q.includes("selam") || q.includes("hey")) {
+    return `**İso Analiz Botu:** Merhaba! ${homeName} vs ${awayName} maçını analiz ettim. Favorim: <b>${fav}</b>. Tahmini skor: <b>${score}</b>. Daha detaylı soru sorabilirsin.`;
   }
-
-  // Skor
-  if (q.includes("kaç kaç") || q.includes("skor") || q.includes("biter") || q.includes("sonuç")) {
-    return `**İso Analiz Botu:** Tahmini skor **${score}**. ${homeName} maç başına ortalama ${hAvg} gol atarken, ${awayName} ${aAvg} gol atıyor. ${fav} daha fazla gol bulma potansiyeline sahip.`;
+  if (q.includes("skor") || q.includes("kaç") || q.includes("tahmin")) {
+    return `**İso Analiz Botu:** Tahmini skor: <b>${score}</b><br>${homeName} ort. gol: ${hAvg} | ${awayName} ort. gol: ${aAvg}`;
   }
-
-  // Sarı kart
-  if (q.includes("sarı") || q.includes("kart")) {
-    const intensity = (hL.wins + aL.wins) > 11 ? "yüksek" : "orta";
-    const range = intensity === "yüksek" ? "5-7" : "3-5";
-    return `**İso Analiz Botu:** Bu maç için toplam **${range} sarı kart** bekliyorum. Tempo ${intensity} olursa üst sınıra yaklaşabilir. ${fav} daha baskılı oynayacağı için rakibinden biraz daha fazla kart görebilir.`;
+  if (q.includes("favori") || q.includes("kim kazanır") || q.includes("kazanır")) {
+    return `**İso Analiz Botu:** Verilere göre favori: <b>${fav}</b> (%${Math.max(probs.home, probs.away)})`;
   }
-
-  // Korner
-  if (q.includes("korner") || q.includes("corner")) {
-    const range = bothLikely || parseFloat(hAvg) + parseFloat(aAvg) > 2.5 ? "9-13" : "7-11";
-    return `**İso Analiz Botu:** Toplam korner tahmini **${range}**. ${fav} daha fazla topa sahip olma eğiliminde olduğu için korner üretiminde önde olabilir.`;
+  if (q.includes("over") || q.includes("üst") || q.includes("2.5") || q.includes("gol")) {
+    const overPct = Math.round(((hL.over25 + aL.over25) / (hL.played + aL.played || 1)) * 100);
+    return `**İso Analiz Botu:** Over 2.5 ihtimali yaklaşık %${overPct}. ${bothLikely ? "Her iki takım da gol atabilir." : "Daha temkinli bir maç olabilir."}`;
   }
-
-  // Kim kazanır
-  if (q.includes("kim kazan") || q.includes("kim alır") || q.includes("favori") || q.includes("kazanır")) {
-    return `**İso Analiz Botu:** ${fav} kazanmaya daha yakın (**%${Math.max(probs.home, probs.away)}**). Son 10 maçta ${fav === homeName ? hL.wins : aL.wins} galibiyet almış. Form ve gol üretimi de bunu destekliyor.`;
-  }
-
-  // KG
-  if (q.includes("karşılıklı") || q.includes("iki takım") || q.includes("kg")) {
-    return bothLikely
-      ? `**İso Analiz Botu:** Evet, **karşılıklı gol** ihtimalini yüksek görüyorum. ${homeName} (${hAvg} gol) ve ${awayName} (${aAvg} gol) her ikisi de gol atma eğiliminde.`
-      : `**İso Analiz Botu:** Karşılıklı gol ihtimali orta-düşük seviyede. Bir tarafın savunması daha sağlam görünüyor.`;
-  }
-
-  // 2.5
-  if (q.includes("2.5") || q.includes("üst") || q.includes("alt")) {
-    const over = (hL.over25 + aL.over25) >= 6;
-    return over
-      ? `**İso Analiz Botu:** **2.5 Üst** daha mantıklı görünüyor. Son maçlarda toplam gol sayısı genellikle yüksek.`
-      : `**İso Analiz Botu:** **2.5 Alt** tarafı daha güvenli olabilir.`;
-  }
-
-  // Genel / Boş soru
-  if (!q || q.includes("analiz") || q.includes("ne düşünüyorsun") || q.includes("yorum")) {
-    return `**İso Analiz Botu:** ${homeName} vs ${awayName} maçında ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Tahmini skor **${score}**. ${homeName} son 10’da ${hL.wins} galibiyet (${hAvg} gol), ${awayName} ${aL.wins} galibiyet (${aAvg} gol). ${bothLikely ? "Karşılıklı gol mümkün." : "Daha kontrollü bir maç olabilir."} Başka ne merak ediyorsun?`;
-  }
-
-  // Varsayılan akıllı cevap
-  return `**İso Analiz Botu:** Anladım. Bu maçta ${fav} hafif favori (%${Math.max(probs.home, probs.away)}). Tahmini skor **${score}**. ${homeName} ${hAvg} gol, ${awayName} ${aAvg} gol ortalamasına sahip. Daha spesifik sorarsan (korner, kart, skor, kim kazanır, 2.5 üst) daha net cevap verebilirim.`;
+  return `**İso Analiz Botu:** ${homeName} %${probs.home} — ${awayName} %${probs.away}<br>
+Tahmini skor: <b>${score}</b><br>
+${homeName} son 10: ${hL.wins}G ${hL.draws}B ${hL.losses}M (ort. ${hAvg} gol)<br>
+${awayName} son 10: ${aL.wins}G ${aL.draws}B ${aL.losses}M (ort. ${aAvg} gol)<br>
+Favori: <b>${fav}</b>`;
 }
 
 async function analyze() {
   const homeId = document.getElementById("home").value;
   const awayId = document.getElementById("away").value;
-  const homeName = document.getElementById("home").selectedOptions[0].text;
-  const awayName = document.getElementById("away").selectedOptions[0].text;
+  const homeName = document.getElementById("home").selectedOptions[0]?.text;
+  const awayName = document.getElementById("away").selectedOptions[0]?.text;
+  if (!homeId || !awayId || homeId === awayId) {
+    document.getElementById("report").innerHTML = "<p style='color:#ff6b6b'>Farklı iki takım seç.</p>";
+    return;
+  }
   const report = document.getElementById("report");
-  if (homeId === awayId) { report.textContent = "Farklı takımlar seç."; return; }
-
-  report.innerHTML = "<p style='color:#35ee7b'>Analiz yapılıyor...</p>";
+  report.innerHTML = "Analiz yapılıyor...";
   try {
-    const [h2hRes, hs, as, hr, ar] = await Promise.all([
-      api(`/h2h/${homeId}/${awayId}`).catch(() => ({})),
-      api(`/teams/${homeId}/statistics`).catch(() => ({})),
-      api(`/teams/${awayId}/statistics`).catch(() => ({})),
-      api(`/teams/${homeId}/results?limit=10`).catch(() => []),
-      api(`/teams/${awayId}/results?limit=10`).catch(() => [])
+    const [homeRes, awayRes, h2h] = await Promise.all([
+      api(`/teams/${homeId}/matches?limit=10`).catch(() => []),
+      api(`/teams/${awayId}/matches?limit=10`).catch(() => []),
+      api(`/teams/${homeId}/h2h/${awayId}`).catch(() => [])
     ]);
-
-    const matches = h2hRes.matches || h2hRes.fixtures || [];
-    const hL = analyzeLast(hr, homeName);
-    const aL = analyzeLast(ar, awayName);
-
-    let hp = 50;
-    hp += (formToPoints(hs.form) - formToPoints(as.form)) * 2;
-    hp += (hL.wins - aL.wins) * 3;
-    hp = Math.max(20, Math.min(80, Math.round(hp)));
-    const probs = { home: hp, away: 100 - hp };
-
+    const hL = analyzeLast(homeRes, homeName);
+    const aL = analyzeLast(awayRes, awayName);
+    
+    const hStrength = (hL.wins * 3 + hL.draws) + (hL.goalsFor - hL.goalsAgainst) * 0.4;
+    const aStrength = (aL.wins * 3 + aL.draws) + (aL.goalsFor - aL.goalsAgainst) * 0.4;
+    let homeProb = 50;
+    if (hStrength + aStrength > 0) {
+      homeProb = Math.round((hStrength / (hStrength + aStrength)) * 100);
+      homeProb = Math.max(28, Math.min(72, homeProb));
+    }
+    const probs = { home: homeProb, away: 100 - homeProb };
+    const score = predictScore(homeName, awayName, probs, hL, aL);
     lastAnalysis = { homeName, awayName, probs, hL, aL };
 
-    let h2hHTML = matches.length ? `<h4 style="margin:15px 0 8px;color:#35ee7b">Aralarındaki Maçlar</h4><table class="h2h-table">` : "<p>H2H verisi yok.</p>";
+    const matches = Array.isArray(h2h) ? h2h : (h2h?.matches || []);
+    let h2hHTML = matches.length ? `<h4 style="margin:15px 0 8px;color:#35ee7b">Aralarındaki Maçlar</h4><table class="h2h-table">` : "<p style='color:#8a9aab;font-size:13px'>H2H verisi yok.</p>";
     if (matches.length) {
-      matches.slice(0, 10).forEach(m => {
+      matches.slice(0, 8).forEach(m => {
         const date = m.kickoffUtc || m.date ? new Date(m.kickoffUtc || m.date).toLocaleDateString("tr-TR") : "-";
         h2hHTML += `<tr><td>${date}</td><td><b>${m.homeTeamName||""}</b></td><td>${m.homeTeamScore??"-"} - ${m.awayTeamScore??"-"}</td><td><b>${m.awayTeamName||""}</b></td></tr>`;
       });
       h2hHTML += "</table>";
     }
 
+    const hAvg = (hL.goalsFor / (hL.played || 1)).toFixed(1);
+    const aAvg = (aL.goalsFor / (aL.played || 1)).toFixed(1);
+    const overPct = Math.round(((hL.over25 + aL.over25) / ((hL.played + aL.played) || 1)) * 100);
+
     report.innerHTML = `
-      <div class="prob">${homeName} %${probs.home} | ${awayName} %${probs.away}</div>
+      <div class="prob">${homeName} <span style="color:#35ee7b">%${probs.home}</span> &nbsp;|&nbsp; ${awayName} <span style="color:#35ee7b">%${probs.away}</span></div>
       <div class="prob-bar"><div class="prob-fill" style="width:${probs.home}%"></div></div>
+
+      <div class="score-pred">
+        <div class="title">TAHMİNİ SKOR</div>
+        <div class="score">${score}</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">${homeName} — Son 10</div>
+          <div class="value">${hL.wins}G ${hL.draws}B ${hL.losses}M</div>
+          ${formBadges(hL.form)}
+        </div>
+        <div class="stat-card">
+          <div class="label">${awayName} — Son 10</div>
+          <div class="value">${aL.wins}G ${aL.draws}B ${aL.losses}M</div>
+          ${formBadges(aL.form)}
+        </div>
+        <div class="stat-card">
+          <div class="label">Ort. Gol</div>
+          <div class="value">${hAvg} — ${aAvg}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Over 2.5</div>
+          <div class="value">~%${overPct}</div>
+        </div>
+      </div>
+
       ${h2hHTML}
-      <p style="margin-top:12px"><b>${homeName} son 10:</b> ${hL.wins} galibiyet</p>
-      <p><b>${awayName} son 10:</b> ${aL.wins} galibiyet</p>
+
       <button class="ai-btn" onclick="showAI()">🤖 İso Analiz Botu</button>
       <div class="question-box">
         <input id="aiQuestion" placeholder="İso Analiz Botu’na sor (merhaba da yazabilirsin)">
@@ -390,6 +434,11 @@ async function loadStandings() {
     data.forEach(r => html += `<tr><td>${r.overallLeaguePosition}</td><td>${r.team?.name}</td><td>${r.overallLeaguePlayed}</td><td><b>${r.overallLeaguePTS}</b></td></tr>`);
     document.getElementById("standings").innerHTML = html + "</table>";
   } catch { document.getElementById("standings").innerHTML = "Alınamadı."; }
+}
+
+if (localStorage.getItem("theme") === "light") {
+  document.body.classList.add("light");
+  document.querySelector(".theme-btn").textContent = "☀️";
 }
 
 loadAllTeams();

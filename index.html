@@ -68,6 +68,9 @@ body.light .stat-card{background:#f0f4f8;border-color:#d0d8e0}
 .form-badge.D{background:#f0c040;color:#1a1500}
 .form-badge.L{background:#ff6b6b;color:#fff}
 .sponsor-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid #293945}
+.onewin-btn{display:block;width:100%;margin-top:14px;padding:14px;background:linear-gradient(135deg,#00a3ff,#0077cc);color:white;font-weight:bold;font-size:16px;border:none;border-radius:10px;text-align:center;text-decoration:none;cursor:pointer}
+.onewin-btn:hover{opacity:.9}
+.onewin-btn-small{display:inline-block;margin-top:12px;padding:10px 18px;background:linear-gradient(135deg,#00a3ff,#0077cc);color:white;font-weight:bold;font-size:14px;border:none;border-radius:8px;text-decoration:none}
 @media(max-width:600px){
   .stats-grid{grid-template-columns:1fr 1fr}
   header{flex-wrap:wrap}
@@ -157,6 +160,7 @@ body.light .stat-card{background:#f0f4f8;border-color:#d0d8e0}
 <script>
 const API_KEY = "gapk_8b131482bc312ca482baef12447de5f5e6a9a2c9db8d1f75ca4f8d8458e85494";
 const BASE = "https://api.goal-api.com/v1";
+const ONEWIN_URL = "https://1win.co.tz/";
 const LEAGUES = {
   super: "cmr77dw0q00eprx06rqew3m48",
   premier: "cmr77dvkr005nrx06lp7rvp49",
@@ -212,8 +216,6 @@ async function loadAllTeams() {
     document.getElementById("report").textContent = "Takımlar yüklenemedi.";
   }
 }
-
-function formToPoints(f) { return f ? f.split("").reduce((p,c)=>p+(c==="W"?3:c==="D"?1:0),0) : 0; }
 
 function analyzeLast(results, team) {
   if (!results?.length) return {wins:0, draws:0, losses:0, goalsFor:0, goalsAgainst:0, over25:0, played:0, form:[]};
@@ -356,6 +358,10 @@ async function analyze() {
 
       ${h2hHTML}
 
+      <a href="${ONEWIN_URL}" target="_blank" rel="noopener noreferrer" class="onewin-btn">
+        Bu maçı 1win’de oyna →
+      </a>
+
       <button class="ai-btn" onclick="showAI()">🤖 İso Analiz Botu</button>
       <div class="question-box">
         <input id="aiQuestion" placeholder="İso Analiz Botu’na sor (merhaba da yazabilirsin)">
@@ -390,11 +396,16 @@ function shareCoupon(p) {
 }
 
 function openMatchDetail(m) {
-  document.getElementById("modalTitle").textContent = `${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}`;
+  const home = m.homeTeamName || m.homeTeam?.name || "";
+  const away = m.awayTeamName || m.awayTeam?.name || "";
+  document.getElementById("modalTitle").textContent = `${home} vs ${away}`;
   document.getElementById("modalBody").innerHTML = `
     <p><b>Skor:</b> ${m.homeTeamScore||0} - ${m.awayTeamScore||0}</p>
-    <p><b>Durum:</b> ${m.matchStatus||"-"}</p>
+    <p><b>Durum:</b> ${m.matchStatus || m.matchElapsed ? (m.matchElapsed + "'") : "-"}</p>
     <p><b>Lig:</b> ${m.leagueName||"-"}</p>
+    <a href="${ONEWIN_URL}" target="_blank" rel="noopener noreferrer" class="onewin-btn-small">
+      1win’de Bu Maçı Gör →
+    </a>
   `;
   document.getElementById("matchModal").style.display = "flex";
 }
@@ -404,7 +415,7 @@ async function loadToday() {
     const today = new Date().toISOString().split("T")[0];
     const data = await api(`/fixtures/date/${today}`);
     document.getElementById("today").innerHTML = data?.length 
-      ? data.slice(0,12).map(m => `<div class="match" onclick='openMatchDetail(${JSON.stringify(m)})'>${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}</div>`).join("")
+      ? data.slice(0,12).map(m => `<div class="match" onclick='openMatchDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})'>${m.homeTeamName||m.homeTeam?.name} vs ${m.awayTeamName||m.awayTeam?.name}</div>`).join("")
       : "Bugün maç yok.";
   } catch { document.getElementById("today").innerHTML = "Yüklenemedi."; }
 }
@@ -413,7 +424,7 @@ async function loadLive() {
   try {
     const data = await api("/fixtures/live");
     document.getElementById("live").innerHTML = data?.length
-      ? data.slice(0,8).map(m => `<div class="match" onclick='openMatchDetail(${JSON.stringify(m)})'><span class="live">${m.matchElapsed||"LIVE"}'</span> ${m.homeTeamName||m.homeTeam?.name} <b>${m.homeTeamScore||0}-${m.awayTeamScore||0}</b> ${m.awayTeamName||m.awayTeam?.name}</div>`).join("")
+      ? data.slice(0,8).map(m => `<div class="match" onclick='openMatchDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})'><span class="live">${m.matchElapsed||"LIVE"}'</span> ${m.homeTeamName||m.homeTeam?.name} <b>${m.homeTeamScore||0}-${m.awayTeamScore||0}</b> ${m.awayTeamName||m.awayTeam?.name}</div>`).join("")
       : "Canlı maç yok.";
   } catch { document.getElementById("live").innerHTML = "Yüklenemedi."; }
 }
